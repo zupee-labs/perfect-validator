@@ -21,9 +21,11 @@ export class MongoStorage implements IModelStorage {
         await this.writeCollection.createIndex({ modelName: 1, version: -1 });
         await this.writeCollection.createIndex({ modelName: 1, version: 1 }, { unique: true });
     }
+
     public static getInstance(writeDb: Db, readDb: Db): MongoStorage {
         return new MongoStorage(writeDb, readDb)
     }
+
     async storeModelVersion(modelName: string, serializedModel: string): Promise<void> {
         // Get current latest version
         const latest = await this.getLatestModelVersion(modelName);

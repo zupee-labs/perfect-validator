@@ -10,7 +10,7 @@ import { IModelStorage } from './interfaces/storage.interface'
 import { validateAgainstModel, validateDataModel } from './validators'
 
 // Helper function to safely deserialize functions
-export const deserializeFunction = (fnStr: string): Function => {
+const deserializeFunction = (fnStr: string): Function => {
     try {
         // Remove any 'function' keyword if present and any name
         fnStr = fnStr.replace(/^function\s*[a-zA-Z0-9_]*\s*/, '');
@@ -44,7 +44,7 @@ export const deserializeFunction = (fnStr: string): Function => {
 };
 
 // Serialize validation model to string
-export const serializeValidationModel = (model: ValidationModel): string => {
+const serializeValidationModel = (model: ValidationModel): string => {
     function serializeObject(obj: any): any {
         // Handle functions
         if (typeof obj === 'function') {
@@ -82,7 +82,7 @@ export const serializeValidationModel = (model: ValidationModel): string => {
 };
 
 // Deserialize string back to validation model
-export const deserializeValidationModel = (serializedModel: string): ValidationModel => {
+const deserializeValidationModel = (serializedModel: string): ValidationModel => {
     function deserializeObject(obj: any): any {
         // Handle function objects
         if (obj && obj.__type === 'function' && obj.code) {
@@ -176,6 +176,10 @@ export const deserializeValidationModel = (serializedModel: string): ValidationM
 
 // Add validation for nested structures
 
+/**
+ * PV (Programmable Validator) Class
+ * Main validator class that handles both static and dynamic validation with model storage capabilities.
+ */
 export class PV {
     private storage: IModelStorage;
     private static instance: PV;
@@ -185,7 +189,26 @@ export class PV {
     }
 
     /**
-     * Static validation with direct model and data
+     * Get singleton instance of PV
+     * @param storage - Storage implementation for validation models
+     * @returns PV instance
+     */
+    public static getInstance(storage: IModelStorage): PV {
+        if (!PV.instance) {
+            try {
+                PV.instance = new PV(storage)
+            } catch (error) {
+                throw new Error(`Failed to create PV instance: ${JSON.stringify(error.stack)}`)
+            }
+        }
+        return PV.instance
+    }
+
+    /**
+     * Validate data against a model directly without storage
+     * @param data - Data to validate
+     * @param model - Validation model to use
+     * @returns Validation response with errors or validated data
      */
     public validateStatic<T>(data: T, model: ValidationModel): ValidationResponse<T> {
         // First validate the model itself
@@ -204,19 +227,11 @@ export class PV {
         return validateAgainstModel(data, model);
     }
 
-    public static getInstance(storage: IModelStorage): PV {
-        if (!PV.instance) {
-            try {
-                PV.instance = new PV(storage)
-            } catch (error) {
-                throw new Error(`Failed to create PV instance: ${JSON.stringify(error.stack)}`)
-            }
-        }
-        return PV.instance
-    }
-
     /**
-     * Dynamic validation using stored model
+     * Validate data using a stored model
+     * @param data - Data to validate
+     * @param modelName - Name of the stored model to use
+     * @returns Promise with validation response
      */
     public async validateDynamic<T>(data: T, modelName: string): Promise<ValidationResponse<T>> {
         try {
@@ -269,7 +284,11 @@ export class PV {
     }
 
     /**
-     * Store model with validation
+     * Store a new validation model with optional test data
+     * @param modelName - Name to store the model under
+     * @param model - Validation model to store
+     * @param testData - Optional data to test the model against
+     * @returns Promise with model validation response
      */
     public async storeModel(
         modelName: string, 

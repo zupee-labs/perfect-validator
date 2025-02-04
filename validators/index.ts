@@ -1,6 +1,8 @@
 import { ValidationModel, ValidationResponse, ModelValidationResponse, ValidationRule, ValidationType, ValidationError, ValidationDependency } from '../interfaces/validation.interface';
 
-// Constants
+/**
+ * Constants for validation types and patterns
+ */
 const VALID_TYPES = ['S', 'N', 'B', 'L', 'M', 'EMAIL', 'URL', 'DATE', 'PHONE', 'REGEX'] as const;
 
 // Regex patterns
@@ -12,6 +14,12 @@ const PATTERNS = {
 } as const;
 
 // Helper functions
+/**
+ * Get nested value from an object using dot notation
+ * @param obj - Object to get value from
+ * @param path - Path to the value using dot notation
+ * @returns Value at the path or undefined
+ */
 function getNestedValue(obj: any, path: string): any {
     // Split path into parts, handling array notation
     const parts = path.split(/\.|\[|\]/).filter(Boolean);
@@ -139,6 +147,12 @@ function getTypeDescription(rule: ValidationRule | string): string {
     }
 }
 
+/**
+ * Validate a data model structure
+ * Checks for valid types, rules, and dependencies
+ * @param model - Model to validate
+ * @returns Validation response with any structural errors
+ */
 export function validateDataModel(model: ValidationModel): ModelValidationResponse {
     const errors: string[] = [];
 
@@ -234,6 +248,14 @@ export function validateDataModel(model: ValidationModel): ModelValidationRespon
     };
 }
 
+/**
+ * Validate data against a validation model
+ * Handles nested structures, dependencies, and custom validation
+ * @param data - Data to validate
+ * @param model - Validation model to use
+ * @param parentPath - Current path for nested validation
+ * @returns Validation response with errors or validated data
+ */
 export function validateAgainstModel<T>(
     data: T, 
     model: ValidationModel, 
