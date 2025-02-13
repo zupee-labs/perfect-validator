@@ -244,18 +244,10 @@ export function validateAgainstModel<T>(
     model: PerfectValidator.ValidationModel, 
     parentPath = ''
 ): PerfectValidator.ValidationResponse<T> {
-    console.log('\n=== Starting Validation ===');
-    console.log('Data:', JSON.stringify(data, null, 2));
-    console.log('Model:', JSON.stringify(model, null, 2));
-    
     const errors: PerfectValidator.ValidationError[] = [];
     const dataWithDefaults = applyDefaults(data, model);
 
     function validateValue(value: any, rule: PerfectValidator.ValidationRule | string, path: string): void {
-        console.log(`\nValidating path: ${path}`);
-        console.log('Value:', value);
-        console.log('Rule:', JSON.stringify(rule, (key, val) => 
-            typeof val === 'function' ? '[Function]' : val, 2));
 
         // Handle undefined for optional fields
         if (value === undefined) {
@@ -273,7 +265,6 @@ export function validateAgainstModel<T>(
         // Parse array type notation
         const { isArray, elementType } = parseArrayType(typeIndicator);
         if (isArray) {
-            console.log('Validating array:', path);
             if (!Array.isArray(value)) {
                 errors.push({
                     field: path,
@@ -360,10 +351,8 @@ export function validateAgainstModel<T>(
 
         // Dependencies validation
         if (typeof rule === 'object' && rule.dependsOn) {
-            console.log('\n=== Dependency Validation ===');
             const deps = Array.isArray(rule.dependsOn) ? rule.dependsOn : [rule.dependsOn];
             deps.forEach((dep, index) => {
-                console.log(`\nChecking dependency ${index + 1}:`, dep);
                 
                 // Get the parent path
                 const parentPath = path.substring(0, path.lastIndexOf('.'));
@@ -376,28 +365,21 @@ export function validateAgainstModel<T>(
                         ? `${parentPath}.${dep.field}`
                         : dep.field;
                 
-                console.log('Parent path:', parentPath);
-                console.log('Dependency path:', depPath);
+
                 
                 const depValue = getNestedValue(dataWithDefaults, depPath);
-                console.log('Dependency value:', depValue);
-
-                console.log('Running condition function...');
+                    
                 const conditionResult = dep.condition(depValue);
-                console.log('Condition result:', conditionResult);
+
 
                 if (conditionResult) {
-                    console.log('Condition passed, running validation...');
                     const isValid = dep.validate(value, depValue, dataWithDefaults);
-                    console.log('Validation result:', isValid);
                     if (!isValid) {
                         errors.push({
                             field: path,
                             message: dep.message
                         });
                     }
-                } else {
-                    console.log('Condition not met, skipping validation');
                 }
             });
         }
@@ -414,12 +396,7 @@ export function validateAgainstModel<T>(
         );
     });
 
-    // Log final validation result
-    if (errors.length > 0) {
-        console.log('\nValidation errors:', errors);
-    } else {
-        console.log('\nValidation successful');
-    }
+
 
     return errors.length > 0 
         ? { isValid: false, errors } 

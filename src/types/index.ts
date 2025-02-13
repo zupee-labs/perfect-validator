@@ -1,6 +1,17 @@
 export namespace PerfectValidator {
     export type ValidationType = 'S' | 'N' | 'B' | 'L' | 'M' | 'EMAIL' | 'URL' | 'DATE' | 'PHONE' | 'REGEX';
-
+    export const DataTypeDescriptions: Record<ValidationType, string> = {
+        'S': 'String type - Text values with optional length and pattern constraints',
+        'N': 'Number type - Numeric values with optional range constraints',
+        'B': 'Boolean type - True/false values',
+        'L': 'List type - Array of values with type validation',
+        'M': 'Map type - Object with defined field structure',
+        'EMAIL': 'Email type - Valid email address format',
+        'URL': 'URL type - Valid URL format',
+        'DATE': 'Date type - Valid date format',
+        'PHONE': 'Phone type - Valid phone number format',
+        'REGEX': 'Regex type - Custom pattern matching'
+    }
     export interface ValidationDependency {
         field: string;
         condition: (value: any) => boolean;
