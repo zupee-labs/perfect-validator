@@ -1,52 +1,49 @@
 import { Collection, Db } from 'mongodb';
 import { PerfectValidator } from '../types';
+import { serializeValidationModel } from '../utils';
 
 export class MongoStorage implements PerfectValidator.IModelStorage {
-    private writeDb: Db;
-    private readDb: Db;
-    private writeCollection: Collection;
-    private readCollection: Collection;
-    private readonly COLLECTION_NAME = 'validationModels';
+    private collection: Collection;
 
-    constructor(writeDb: Db, readDb: Db) {
-        this.writeDb = writeDb;
-        this.readDb = readDb;
-        this.writeCollection = writeDb.collection(this.COLLECTION_NAME);
-        this.readCollection = readDb.collection(this.COLLECTION_NAME);
-        this.initializeIndexes();
+    constructor(db: Db) {
+        // Collection to store validation models
+        this.collection = db.collection('validation_models');
     }
 
-    private async initializeIndexes(): Promise<void> {
-        // Create unique index on modelName since we're only storing one version per model
-        await this.writeCollection.createIndex({ modelName: 1 }, { unique: true });
+    async getModel(modelName: string): Promise<string | null> {
+        const doc = await this.collection.findOne({ name: modelName });
+        return doc ? doc.model : null;
     }
 
-    public static getInstance(writeDb: Db, readDb: Db): MongoStorage {
-        return new MongoStorage(writeDb, readDb);
+    async insertModel(modelName: string, model: PerfectValidator.ValidationModel): Promise<void> {
+        // Store the raw serialized model without parsing
+        const serializedModel = JSON.stringify(model);
+        await this.collection.insertOne({
+            name: modelName,
+            model: serializedModel,  // Store raw string
+            createdAt: new Date()
+        });
     }
 
     async updateModel(modelName: string, model: PerfectValidator.ValidationModel): Promise<void> {
-        const serializedModel = JSON.stringify(model);
-        await this.writeCollection.updateOne(
-            { modelName },
+        // Always serialize before storing
+
+        const serializedModel = serializeValidationModel(model);
+        console.log('Serialized model:', serializedModel);
+        await this.collection.updateOne(
+            { name: modelName },
             { 
                 $set: { 
-                    modelName,
                     model: serializedModel,
                     updatedAt: new Date()
-                }
+                } 
             },
             { upsert: true }
         );
     }
 
-    async getModel(modelName: string): Promise<string | null> {
-        const result = await this.readCollection.findOne({ modelName });
-        return result ? result.model : null;
-    }
-
     async deleteModel(modelName: string): Promise<void> {
-        await this.writeCollection.deleteOne({ modelName });
+        await this.collection.deleteOne({ name: modelName });
     }
 
     // Implementing required interface methods but they're not used anymore
@@ -65,9 +62,22 @@ export class MongoStorage implements PerfectValidator.IModelStorage {
     async listModelVersions(): Promise<PerfectValidator.ModelVersion[]> {
         throw new Error('Method not supported - versioning is disabled');
     }
-
-    async insertModel(modelName: string, model: PerfectValidator.ValidationModel): Promise<void> {
-        // Redirect to updateModel since we're only maintaining one version
-        return this.updateModel(modelName, model);
-    }
 } 
+
+
+
+
+
+
+
+
+// {
+//     "_id": {
+//       "$oid": "67ac80f65bc0ba82de1de0f0"
+//     },
+//     "name": "shipping",
+//     "model": "{\"shipping\":{\"type\":\"M\",\"fields\":{\"method\":{\"type\":\"S\",\"values\":[\"STANDARD\",\"EXPRESS\",\"OVERNIGHT\"],\"dependsOn\":[{\"field\":\"shipping.weight\",\"message\":\"Heavy items cannot use standard shipping\",\"condition\":{\"__type\":\"function\",\"code\":\"function anonymous(weight\\n) {\\nreturn weight > 50;\\n}\",\"original\":\"function anonymous(weight\\n) {\\nreturn weight > 50;\\n}\"},\"validate\":{\"__type\":\"function\",\"code\":\"function anonymous(method\\n) {\\nreturn method !== 'STANDARD';\\n}\",\"original\":\"function anonymous(method\\n) {\\nreturn method !== 'STANDARD';\\n}\"}},{\"field\":\"shipping.international\",\"message\":\"International orders must use express shipping\",\"condition\":{\"__type\":\"function\",\"code\":\"function anonymous(isInt\\n) {\\nreturn isInt === true;\\n}\",\"original\":\"function anonymous(isInt\\n) {\\nreturn isInt === true;\\n}\"},\"validate\":{\"__type\":\"function\",\"code\":\"function anonymous(method\\n) {\\nreturn method === 'EXPRESS';\\n}\",\"original\":\"function anonymous(method\\n) {\\nreturn method === 'EXPRESS';\\n}\"}}]},\"weight\":{\"type\":\"N\"},\"international\":{\"type\":\"B\"}}}}",
+//     "updatedAt": {
+//       "$date": "2025-02-12T11:26:43.751Z"
+//     }
+//   }

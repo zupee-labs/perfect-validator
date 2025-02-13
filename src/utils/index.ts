@@ -2,35 +2,71 @@ import { PerfectValidator } from "../types";
 import { validateDataModel } from "../validators";
 
 
-export const deserializeFunction = (fnStr: string): Function => {
+export const deserializeFunction = (fnStr: string | { code: string; original?: string }): Function => {
     try {
-        // Remove 'function' keyword and name if present
-        fnStr = fnStr.replace(/^function\s*[a-zA-Z0-9_]*\s*/, '');
+        // If input is an object (from MongoDB), use the code property
+        const functionString = typeof fnStr === 'object' ? (fnStr.original || fnStr.code) : fnStr;
+
+        console.log('\n=== Deserialize Function Start ===');
+        console.log('Original string:', functionString);
+
+        // Normalize whitespace and remove 'function' keyword if present
+        let normalizedStr = functionString.trim().replace(/^function\s*[a-zA-Z0-9_]*\s*/, '');
+        normalizedStr = normalizedStr.replace(/function anonymous/, '').replace(/\s+/g, ' ').trim();
         
-        // Handle arrow functions
-        if (fnStr.includes('=>')) {
-            const arrowFnMatch = fnStr.match(/^\((.*?)\)\s*=>\s*(.*)$/);
-            if (arrowFnMatch) {
-                const [, params, body] = arrowFnMatch;
-                // For single expression arrow functions
-                if (!body.includes('{')) {
-                    return new Function(...params.split(',').map(p => p.trim()), `return ${body.trim()};`);
-                }
-                // For multi-line arrow functions
-                const cleanBody = body.replace(/^\{|\}$/g, '').trim();
-                return new Function(...params.split(',').map(p => p.trim()), cleanBody);
+        console.log('After normalization:', normalizedStr);
+
+        if (normalizedStr.includes('=>')) {
+            console.log('Detected arrow function');
+            
+            // Multi-line arrow with block
+            const blockArrowMatch = normalizedStr.match(/^\s*\((.*?)\)\s*=>\s*\{([\s\S]*)\}\s*$/);
+            if (blockArrowMatch) {
+                console.log('Matched block arrow pattern');
+                const [, params, body] = blockArrowMatch;
+                console.log('Params:', params);
+                console.log('Body:', body);
+                return new Function(...params.split(',').map(p => p.trim()), body.trim());
             }
+
+            // Single-line arrow with expression
+            const simpleArrowMatch = normalizedStr.match(/^\s*\((.*?)\)\s*=>\s*(.+?)\s*$/);
+            if (simpleArrowMatch) {
+                console.log('Matched simple arrow pattern');
+                const [, params, expression] = simpleArrowMatch;
+                console.log('Params:', params);
+                console.log('Expression:', expression);
+                // Handle potential multi-line expressions without braces
+                const cleanExpression = expression.includes('\n') 
+                    ? expression.split('\n').map(line => line.trim()).join(' ')
+                    : expression.trim();
+                console.log('Clean expression:', cleanExpression);
+                return new Function(...params.split(',').map(p => p.trim()), `return ${cleanExpression};`);
+            }
+
+            console.log('No arrow function pattern matched');
         }
 
-        // Handle regular functions
-        const regularFnMatch = fnStr.match(/^\((.*?)\)\s*\{([\s\S]*)\}$/);
+        // Regular function (now without 'function' keyword)
+        console.log('Trying regular function pattern');
+        const regularFnMatch = normalizedStr.match(/^\s*\((.*?)\)\s*\{([\s\S]*)\}\s*$/);
         if (regularFnMatch) {
+            console.log('Matched regular function pattern');
             const [, params, body] = regularFnMatch;
+            console.log('Params:', params);
+            console.log('Body:', body);
             return new Function(...params.split(',').map(p => p.trim()), body.trim());
         }
 
+        console.log('No patterns matched');
         throw new Error('Invalid function format');
-    } catch (error: unknown) {
+    } catch (error) {
+        console.error('\n=== Function Deserialization Error ===');
+        console.error('Input string:', fnStr    );
+        console.error('Attempted patterns:');
+        console.error('1. Block arrow: /^\\s*\\((.*?)\\)\\s*=>\\s*\\{([\\s\\S]*)\\}\\s*$/');
+        console.error('2. Simple arrow: /^\\s*\\((.*?)\\)\\s*=>\\s*(.+?)\\s*$/');
+        console.error('3. Regular function: /^\\s*\\((.*?)\\)\\s*\\{([\\s\\S]*)\\}\\s*$/');
         if (error instanceof Error) {
             throw new Error(`Failed to deserialize function: ${error.message}`);
         }
@@ -43,12 +79,7 @@ export const serializeValidationModel = (model: PerfectValidator.ValidationModel
     function serializeObject(obj: any): any {
         // Handle functions
         if (typeof obj === 'function') {
-            return {
-                __type: 'function',
-                code: obj.toString(),
-                // Store original function string for better reconstruction
-                original: obj.toString()
-            };
+            return serializeFunction(obj);
         }
 
         // Handle arrays
@@ -71,26 +102,38 @@ export const serializeValidationModel = (model: PerfectValidator.ValidationModel
 
     try {
         return JSON.stringify(serializeObject(model));
-    } catch (error: unknown) {
+    } catch (error) {
         if (error instanceof Error) {
             throw new Error(`Failed to serialize model: ${error.message}`);
         }
         throw new Error('Failed to serialize model: Unknown error');
     }
 };
+
+function serializeFunction(fn: Function): any {
+    return {
+        __type: 'function',
+        code: fn.toString().replace(/\n/g, ' ').trim(),  // Remove newlines
+        original: fn.toString().replace(/\n/g, ' ').trim()  // Remove newlines
+    };
+}
+
 export const deserializeValidationModel = (serializedModel: string): PerfectValidator.ValidationModel => {
+    console.log('\n=== Starting Deserialization ===');
+    // console.log('Serialized Model:', serializedModel);
+
     function deserializeObject(obj: any): any {
-        // Handle function objects
+        console.log('\nDeserializing object:', JSON.stringify(obj, null, 2));
+
         if (obj && obj.__type === 'function' && obj.code) {
+            console.log('Deserializing function:', obj.code);
             try {
-                const fn:Function = deserializeFunction(obj.original || obj.code);
+                const fn = deserializeFunction(obj.original || obj.code);
+                console.log('Function deserialized successfully');
                 return fn;
-            } catch (error: unknown) {
-                if (error instanceof Error) {
-                    console.error('Function deserialization error:', error);
-                    throw error;
-                }
-                throw new Error('Unknown error during function deserialization');
+            } catch (error) {
+                console.error('Function deserialization error:', error);
+                throw error;
             }
         }
 
@@ -150,7 +193,11 @@ export const deserializeValidationModel = (serializedModel: string): PerfectVali
 
     try {
         const parsed = JSON.parse(serializedModel);
+        console.log('\nParsed JSON:', JSON.stringify(parsed, null, 2));
+        
         const deserialized = deserializeObject(parsed);
+        console.log('\nDeserialized Model:', JSON.stringify(deserialized, (key, val) => 
+            typeof val === 'function' ? '[Function]' : val, 2));
         
         // Validate the deserialized model
         const validation: PerfectValidator.ModelValidationResponse = validateDataModel(deserialized);
@@ -159,10 +206,8 @@ export const deserializeValidationModel = (serializedModel: string): PerfectVali
         }
         
         return deserialized;
-    } catch (error: unknown) {
-        if (error instanceof Error) {
-            throw new Error(`Failed to deserialize model: ${error.message}`);
-        }
-        throw new Error('Failed to deserialize model: Unknown error');
+    } catch (error) {
+        console.error('Deserialization error:', error);
+        throw error;
     }
 };

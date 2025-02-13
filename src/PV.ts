@@ -31,7 +31,7 @@ export class PV {
         if (!PV.instance) {
             try {
                 PV.instance = new PV(storage);
-            } catch (error: unknown) {
+            } catch (error) {
                 if (error instanceof Error) {
                     throw new Error(`Failed to create PV instance: ${error.message}`);
                 }
@@ -50,9 +50,11 @@ export class PV {
             if (!serializedModel) {
                 throw new Error(`Model ${modelName} not found`);
             }
+            console.log('Serialized model:', JSON.stringify(serializedModel, null, 2));
             const model: PerfectValidator.ValidationModel = deserializeValidationModel(serializedModel);
+            console.log('Deserialized model:', JSON.stringify(model, null, 2));
             return validateAgainstModel(data, model);
-        } catch (error: unknown) {
+        } catch (error) {
             if (error instanceof Error) {
                 return {
                     isValid: false,
@@ -83,38 +85,26 @@ export class PV {
         try {
             // 1. Validate model structure
             const modelValidation = this.validateModel(model);
+            // console.log('1. Model Validation:', modelValidation);
+
             if (!modelValidation.isValid) {
                 return modelValidation;
             }
 
-            // 2. Validate model functions
-            const functionValidation = this.validateModelFunctions(model);
-            if (!functionValidation.isValid) {
-                return functionValidation;
-            }
-
-            // 3. Serialize with safety checks
+            // 2. Serialize with safety checks
             const serialized = await this.serializeModelSafely(model);
+            // console.log('2. Initial Serialization:', serialized);
 
-            // 4. Test deserialization
+            // 3. Test deserialization
             const deserialized = await this.deserializeAndValidate(serialized);
+            // console.log('3. Test Deserialization:', JSON.stringify(deserialized, (key, val) => 
+            //     typeof val === 'function' ? val.toString() : val, 2));
 
-            // 5. Test with sample data if provided
-            if (testData) {
-                const testValidation = validateAgainstModel(testData, deserialized);
-                if (testValidation !== null && isValidationError(testValidation)) {
-                    return {
-                        isValid: false,
-                        errors: testValidation.errors.map((e: PerfectValidator.ValidationError) => e.message)
-                    };
-                }
-            }
-
-            // 6. Store model (overwrite existing)
-            await this.storage.updateModel(modelName, model);
+            // 4. Store model (overwrite existing)
+            await this.storage.updateModel(modelName, deserialized);
 
             return { isValid: true, errors: null };
-        } catch (error: unknown) {
+        } catch (error) {
             if (error instanceof Error) {
                 return {
                     isValid: false,
@@ -137,8 +127,10 @@ export class PV {
 
     private async serializeModelSafely(model: PerfectValidator.ValidationModel): Promise<string> {
         try {
+            // console.log('Serializing model:', JSON.stringify(model, (key, val) => 
+            //     typeof val === 'function' ? val.toString() : val, 2));
             return serializeValidationModel(model);
-        } catch (error: unknown) {
+        } catch (error) {
             if (error instanceof Error) {
                 throw new Error(`Model serialization failed: ${error.message}`);
             }
@@ -154,7 +146,7 @@ export class PV {
                 throw new Error(`Invalid model after deserialization: ${validation.errors?.join(', ') || 'Unknown error'}`);
             }
             return model;
-        } catch (error: unknown) {
+        } catch (error) {
             if (error instanceof Error) {
                 throw new Error(`Model deserialization failed: ${error.message}`);
             }
@@ -170,7 +162,7 @@ export class PV {
                 if (typeof value === 'function') {
                     try {
                         value(1, 2, 3);
-                    } catch (error: unknown) {
+                    } catch (error) {
                         if (!(error instanceof TypeError)) {
                             if (error instanceof Error) {
                                 errors.push(`Invalid function at ${path}.${key}: ${error.message}`);
