@@ -16,5 +16,5 @@ export { validateAgainstModel, validateDataModel } from './validators';
 
 // Export default instance creator
 export const createPV = (storage: PerfectValidator.IModelStorage): PV => {
-    return PV.getInstance(storage);
+  return PV.getInstance(storage);
 };
