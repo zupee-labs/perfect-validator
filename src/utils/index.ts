@@ -20,10 +20,11 @@ export const deserializeFunction = (
     if (normalizedStr.includes('=>')) {
       // Multi-line arrow with block
       const blockArrowMatch = normalizedStr.match(
-        /^\s*\((.*?)\)\s*=>\s*\{([\s\S]*)\}\s*$/
+        /^\s*(?:\((.*?)\)|([^=>\s]+))\s*=>\s*\{([\s\S]*)\}\s*$/
       );
       if (blockArrowMatch) {
-        const [, params, body] = blockArrowMatch;
+        const [, paramsWithParens, singleParam, body] = blockArrowMatch;
+        const params = paramsWithParens || singleParam;
         return new Function(
           ...params.split(',').map(p => p.trim()),
           body.trim()
@@ -32,10 +33,11 @@ export const deserializeFunction = (
 
       // Single-line arrow with expression
       const simpleArrowMatch = normalizedStr.match(
-        /^\s*\((.*?)\)\s*=>\s*(.+?)\s*$/
+        /^\s*(?:\((.*?)\)|([^=>\s]+))\s*=>\s*(.+?)\s*$/
       );
       if (simpleArrowMatch) {
-        const [, params, expression] = simpleArrowMatch;
+        const [, paramsWithParens, singleParam, expression] = simpleArrowMatch;
+        const params = paramsWithParens || singleParam;
         // Handle potential multi-line expressions without braces
         const cleanExpression = expression.includes('\n')
           ? expression

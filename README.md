@@ -1,6 +1,16 @@
-# Programmable Validator (PV)
+# The Perfect Validator (PV)
 
 A TypeScript-based validation library that supports both static and dynamic validation with serializable models.
+
+## Installation
+
+```bash
+npm install perfect-validator
+```
+
+## Usage
+
+See the examples below for usage.
 
 ## Features
 
@@ -248,4 +258,12 @@ const result1 = await validator.validateDynamic(password1, 'passwordModel'); // 
 const result2 = await validator.validateDynamic(password2, 'passwordModel'); // Invalid
 ```
 
-## Project Structure 
+## Project Structure
+
+- `src/` - Source code for the library
+- `test/` - Test cases for the library
+- `interfaces/` - TypeScript interfaces for the library
+- `utils/` - Utility functions for the library
+- `storage/` - Storage implementations for the library
+
+Made with ❤️ by [Zupee](https://zupee.com)
