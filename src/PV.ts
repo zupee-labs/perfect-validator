@@ -1,7 +1,7 @@
-import { PerfectValidator, isValidationError } from './types';
+import { PerfectValidator } from './types';
 import { validateAgainstModel, validateDataModel } from './validators';
 import { deserializeValidationModel, serializeValidationModel } from './utils';
-
+import userProfileModel, { testCases } from './utils/model';
 export class PV {
     private storage: PerfectValidator.IModelStorage;
     private static instance: PV | null = null;
@@ -50,9 +50,7 @@ export class PV {
             if (!serializedModel) {
                 throw new Error(`Model ${modelName} not found`);
             }
-            console.log('Serialized model:', JSON.stringify(serializedModel, null, 2));
             const model: PerfectValidator.ValidationModel = deserializeValidationModel(serializedModel);
-            console.log('Deserialized model:', JSON.stringify(model, null, 2));
             return validateAgainstModel(data, model);
         } catch (error) {
             if (error instanceof Error) {
@@ -84,21 +82,17 @@ export class PV {
     ): Promise<PerfectValidator.ModelValidationResponse> {
         try {
             // 1. Validate model structure
-            const modelValidation = this.validateModel(model);
-            // console.log('1. Model Validation:', modelValidation);
+            const modelValidation: PerfectValidator.ModelValidationResponse = this.validateModel(model);
 
             if (!modelValidation.isValid) {
-                return modelValidation;
+                throw new Error(`Model validation failed: ${modelValidation.errors?.join(', ') || 'Unknown error'}`);
             }
 
             // 2. Serialize with safety checks
-            const serialized = await this.serializeModelSafely(model);
-            // console.log('2. Initial Serialization:', serialized);
+            const serialized: string = await this.serializeModelSafely(model);
 
             // 3. Test deserialization
-            const deserialized = await this.deserializeAndValidate(serialized);
-            // console.log('3. Test Deserialization:', JSON.stringify(deserialized, (key, val) => 
-            //     typeof val === 'function' ? val.toString() : val, 2));
+            const deserialized: PerfectValidator.ValidationModel = await this.deserializeAndValidate(serialized);
 
             // 4. Store model (overwrite existing)
             await this.storage.updateModel(modelName, deserialized);
@@ -127,8 +121,6 @@ export class PV {
 
     private async serializeModelSafely(model: PerfectValidator.ValidationModel): Promise<string> {
         try {
-            // console.log('Serializing model:', JSON.stringify(model, (key, val) => 
-            //     typeof val === 'function' ? val.toString() : val, 2));
             return serializeValidationModel(model);
         } catch (error) {
             if (error instanceof Error) {
@@ -140,8 +132,8 @@ export class PV {
 
     private async deserializeAndValidate(serialized: string): Promise<PerfectValidator.ValidationModel> {
         try {
-            const model = deserializeValidationModel(serialized);
-            const validation = validateDataModel(model);
+            const model: PerfectValidator.ValidationModel = deserializeValidationModel(serialized);
+            const validation: PerfectValidator.ModelValidationResponse = validateDataModel(model);
             if (!validation.isValid) {
                 throw new Error(`Invalid model after deserialization: ${validation.errors?.join(', ') || 'Unknown error'}`);
             }
@@ -154,34 +146,25 @@ export class PV {
         }
     }
 
-    private validateModelFunctions(model: PerfectValidator.ValidationModel): PerfectValidator.ModelValidationResponse {
-        const errors: string[] = [];
-        
-        function validateFunctions(obj: any, path: string): void {
-            for (const [key, value] of Object.entries(obj)) {
-                if (typeof value === 'function') {
-                    try {
-                        value(1, 2, 3);
-                    } catch (error) {
-                        if (!(error instanceof TypeError)) {
-                            if (error instanceof Error) {
-                                errors.push(`Invalid function at ${path}.${key}: ${error.message}`);
-                            } else {
-                                errors.push(`Invalid function at ${path}.${key}: Unknown error`);
-                            }
-                        }
-                    }
-                } else if (value && typeof value === 'object') {
-                    validateFunctions(value, `${path}.${key}`);
-                }
-            }
-        }
-
-        validateFunctions(model, '');
-        
-        return {
-            isValid: errors.length === 0,
-            errors: errors.length > 0 ? errors : null
-        };
+    /**
+     * Get all supported data types with descriptions
+     */
+    public getDataTypes(): Record<PerfectValidator.ValidationType, string> {
+        return PerfectValidator.DataTypeDescriptions;
     }
+
+    /**
+     * Get example model with different validation cases
+     */
+    public getModelExample(): PerfectValidator.ValidationModel {
+        return userProfileModel;
+    }
+
+    /**
+     * Get example data matching the model example
+     */
+    public getDataExample():Array<{name:string, data:any}> {
+        return testCases;
+    }
+    
 }
