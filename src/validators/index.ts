@@ -1,7 +1,7 @@
 import { PerfectValidator } from '../types';
 
 // Constants
-const VALID_TYPES_STRING:string[] = ['S', 'N', 'B', 'L', 'M', 'EMAIL', 'URL', 'DATE', 'PHONE', 'REGEX'] as const;
+const VALID_TYPES_STRING:string[] = ['S', 'N', 'B', 'L', 'M', 'EMAIL', 'URL', 'DATE', 'PHONE', 'REGEX'] ;
 
 // Regex patterns
 const PATTERNS: Record<string, RegExp> = {
@@ -244,11 +244,15 @@ export function validateAgainstModel<T>(
     model: PerfectValidator.ValidationModel, 
     parentPath = ''
 ): PerfectValidator.ValidationResponse<T> {
-    const dataWithDefaults = applyDefaults(data, model);
+    console.log('\n=== Starting Validation ===');
+    console.log('Data:', JSON.stringify(data, null, 2));
+    console.log('Model:', JSON.stringify(model, null, 2));
+    
     const errors: PerfectValidator.ValidationError[] = [];
+    const dataWithDefaults = applyDefaults(data, model);
 
     function validateValue(value: any, rule: PerfectValidator.ValidationRule | string, path: string): void {
-        console.log('\nValidating path:', path);
+        console.log(`\nValidating path: ${path}`);
         console.log('Value:', value);
         console.log('Rule:', JSON.stringify(rule, (key, val) => 
             typeof val === 'function' ? '[Function]' : val, 2));
@@ -356,14 +360,21 @@ export function validateAgainstModel<T>(
 
         // Dependencies validation
         if (typeof rule === 'object' && rule.dependsOn) {
-            console.log('Validating dependencies for path:', path);
+            console.log('\n=== Dependency Validation ===');
             const deps = Array.isArray(rule.dependsOn) ? rule.dependsOn : [rule.dependsOn];
             deps.forEach((dep, index) => {
                 console.log(`\nChecking dependency ${index + 1}:`, dep);
                 
-                // Get the parent path (everything up to the last dot)
+                // Get the parent path
                 const parentPath = path.substring(0, path.lastIndexOf('.'));
-                const depPath = `${parentPath}.${dep.field}`;
+                
+                // For cross-object dependencies, use the absolute path directly
+                // If dep.field contains a dot, it's a cross-object reference
+                const depPath = dep.field.includes('.') 
+                    ? dep.field  // Use absolute path as is
+                    : parentPath  // For same-object references, prepend parent path
+                        ? `${parentPath}.${dep.field}`
+                        : dep.field;
                 
                 console.log('Parent path:', parentPath);
                 console.log('Dependency path:', depPath);
@@ -371,8 +382,12 @@ export function validateAgainstModel<T>(
                 const depValue = getNestedValue(dataWithDefaults, depPath);
                 console.log('Dependency value:', depValue);
 
-                if (dep.condition(depValue)) {
-                    console.log('Condition passed, validating...');
+                console.log('Running condition function...');
+                const conditionResult = dep.condition(depValue);
+                console.log('Condition result:', conditionResult);
+
+                if (conditionResult) {
+                    console.log('Condition passed, running validation...');
                     const isValid = dep.validate(value, depValue, dataWithDefaults);
                     console.log('Validation result:', isValid);
                     if (!isValid) {
