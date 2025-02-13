@@ -1,4 +1,4 @@
-import { PerfectValidator } from '../types';
+import { PerfectValidator } from '../types/index';
 
 // Constants
 const VALID_TYPES_STRING:string[] = ['S', 'N', 'B', 'L', 'M', 'EMAIL', 'URL', 'DATE', 'PHONE', 'REGEX'] ;
