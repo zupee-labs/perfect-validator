@@ -1,5 +1,5 @@
 {
-  "version": "0.1.0",
+  "version": "1.2.0",
   "license": "MIT",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
@@ -8,7 +8,7 @@
     "src"
   ],
   "engines": {
-    "node": ">=10"
+    "node": ">=18"
   },
   "scripts": {
     "start": "tsdx watch",
@@ -45,6 +45,24 @@
       "limit": "10 KB"
     }
   ],
+  "keywords": [
+    "validation",
+    "validators",
+    "validate",
+    "schema",
+    "models",
+    "dynamic",
+    "dynamic-validation",
+    "dynamic-validation-models"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zupee-labs/perfect-validator.git"
+  },
+  "homepage": "https://github.com/zupee-labs/perfect-validator",
+  "bugs": {
+    "url": "https://github.com/zupee-labs/perfect-validator/issues"
+  },
   "devDependencies": {
     "@size-limit/preset-small-lib": "^11.1.6",
     "@types/jest": "^29.5.11",
