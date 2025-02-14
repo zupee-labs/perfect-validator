@@ -34,7 +34,7 @@ describe('Dynamic Validator Tests', () => {
       const result = validateAgainstModel(data, model);
       expect(isValidationError(result)).toBe(false);
       if (!isValidationError(result)) {
-        expect(result).toEqual(data);
+        expect(result.data).toEqual(data);
       }
     });
 
@@ -80,7 +80,7 @@ describe('Dynamic Validator Tests', () => {
       const result = validateAgainstModel(data, model);
       expect(isValidationError(result)).toBe(false);
       if (!isValidationError(result)) {
-        expect(result).toEqual(data);
+        expect(result.data).toEqual(data);
       }
     });
 
@@ -104,7 +104,7 @@ describe('Dynamic Validator Tests', () => {
       const result = validateAgainstModel(data, model);
       expect(isValidationError(result)).toBe(false);
       if (!isValidationError(result)) {
-        expect(result).toEqual(data);
+        expect(result.data).toEqual(data);
       }
     });
 
@@ -134,7 +134,7 @@ describe('Dynamic Validator Tests', () => {
       const validResult = validateAgainstModel(validData, model);
       expect(isValidationError(validResult)).toBe(false);
       if (!isValidationError(validResult)) {
-        expect(validResult).toEqual(validData);
+        expect(validResult.data).toEqual(validData);
       }
 
       const invalidData = {
@@ -263,7 +263,7 @@ describe('Dynamic Validator Tests', () => {
 
       expect(isValidationError(validResult)).toBe(false);
       if (!isValidationError(validResult)) {
-        expect(validResult).toEqual(validData);
+        expect(validResult.data).toEqual(validData);
       }
 
       const invalidData = {
@@ -326,7 +326,7 @@ describe('Dynamic Validator Tests', () => {
 
       expect(isValidationError(validResult)).toBe(false);
       if (!isValidationError(validResult)) {
-        expect(validResult).toEqual(validData);
+        expect(validResult.data).toEqual(validData);
       }
 
       expect(isValidationError(invalidResult)).toBe(true);

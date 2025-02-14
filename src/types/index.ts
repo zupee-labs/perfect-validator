@@ -88,7 +88,7 @@ export namespace PerfectValidator {
   }
 
   export type ValidationResponse<T> =
-    | T // Success case - return validated data directly
+    | { isValid: true; data: T } // Success case - return validated data directly
     | { isValid: false; errors: ValidationError[] } // Error case
     | null; // Add null as a possible response type
 

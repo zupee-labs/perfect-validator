@@ -410,6 +410,6 @@ export function validateAgainstModel<T>(
 
     return errors.length > 0 
         ? { isValid: false, errors } 
-        : dataWithDefaults;
+        : { isValid: true, data: dataWithDefaults };
 }
 
