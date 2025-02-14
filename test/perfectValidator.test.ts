@@ -183,9 +183,7 @@ describe('Dynamic Validator Tests', () => {
       };
 
       const serialized = serializeValidationModel(originalModel);
-      // console.log('Serialized Model:', JSON.stringify(serialized, null, 2));
       const deserialized = deserializeValidationModel(serialized);
-      // console.log('Deserialized Model:', JSON.stringify(deserialized, null, 2));
 
       // Test dependency validation after deserialization
       const validData = { maxPlayers: 4, minPlayers: 2 };
@@ -246,20 +244,8 @@ describe('Dynamic Validator Tests', () => {
         },
       };
 
-      console.log('\n=== Test: Complex Nested Structures ===');
-
       const serialized = serializeValidationModel(originalModel);
-      console.log('\nSerialized Model:', serialized);
-
       const deserialized = deserializeValidationModel(serialized);
-      console.log(
-        '\nDeserialized Model:',
-        JSON.stringify(
-          deserialized,
-          (key, val) => (typeof val === 'function' ? '[Function]' : val),
-          2
-        )
-      );
 
       // Test valid data
       const validData = {
@@ -273,7 +259,6 @@ describe('Dynamic Validator Tests', () => {
         },
       };
 
-      console.log('\nTesting valid data:', JSON.stringify(validData, null, 2));
       const validResult = validateAgainstModel(validData, deserialized);
 
       expect(isValidationError(validResult)).toBe(false);
@@ -336,10 +321,8 @@ describe('Dynamic Validator Tests', () => {
       };
 
       const validResult = validateAgainstModel(validData, deserialized);
-      console.log('Valid Result:', validResult);
 
       const invalidResult = validateAgainstModel(invalidData, deserialized);
-      console.log('Invalid Result:', invalidResult);
 
       expect(isValidationError(validResult)).toBe(false);
       if (!isValidationError(validResult)) {
@@ -413,11 +396,9 @@ describe('Dynamic Validator Tests', () => {
           dependsOn: {
             field: 'other',
             condition: (value: number) => {
-              console.log('field2 condition:', value);
               return value > 0 && value < 100;
             },
             validate: (current: number, other: number) => {
-              console.log('field2 validate:', current, other);
               const isValid = current < other;
               return isValid;
             },
@@ -429,11 +410,9 @@ describe('Dynamic Validator Tests', () => {
           dependsOn: {
             field: 'other',
             condition: function(value: number) {
-              console.log('field3 condition:', value);
               return value > 0;
             },
             validate: function(current: number, other: number) {
-              console.log('field3 validate:', current, other);
               if (current >= other) {
                 return false;
               }
@@ -453,13 +432,8 @@ describe('Dynamic Validator Tests', () => {
       };
 
       const invalidResult = validateAgainstModel(invalidData, model);
-      console.log('Validation errors:', invalidResult);
       expect(isValidationError(invalidResult)).toBe(true);
       if (isValidationError(invalidResult)) {
-        console.log('Number of errors:', invalidResult.errors.length);
-        invalidResult.errors.forEach((error, index) => {
-          console.log(`Error ${index + 1}:`, error);
-        });
         expect(invalidResult.errors.length).toBeGreaterThan(0);
       }
     });
@@ -564,24 +538,14 @@ describe('Dynamic Validator Tests', () => {
           dependsOn: {
             field: 'other',
             condition: (value: number) => {
-              console.log('Condition input value:', value);
               const minValue = 0;
               const result = value > minValue;
-              console.log('Condition result:', result);
               return result;
             },
             validate: (current: number, other: number) => {
-              console.log(
-                'Validate inputs - current:',
-                current,
-                'other:',
-                other
-              );
               if (current >= other) {
-                console.log('Validation failed: current >= other');
                 return false;
               }
-              console.log('Validation passed');
               return true;
             },
             message: 'Test validation',
@@ -590,65 +554,19 @@ describe('Dynamic Validator Tests', () => {
         other: { type: 'N' },
       };
 
-      console.log(
-        '\nOriginal Model:',
-        JSON.stringify(
-          model,
-          (key, value) =>
-            typeof value === 'function' ? value.toString() : value,
-          2
-        )
-      );
-
       const serialized = serializeValidationModel(model);
-      console.log('\nSerialized Model:', serialized);
 
       const deserialized = deserializeValidationModel(serialized);
-      console.log(
-        '\nDeserialized Model:',
-        JSON.stringify(
-          deserialized,
-          (key, value) =>
-            typeof value === 'function' ? value.toString() : value,
-          2
-        )
-      );
-
-      // Test the functions directly
-      const condition = ((deserialized.value as PerfectValidator.ValidationRule)
-        .dependsOn as PerfectValidator.ValidationDependency).condition;
-      const validate = ((deserialized.value as PerfectValidator.ValidationRule)
-        .dependsOn as PerfectValidator.ValidationDependency).validate;
-
-      console.log('\nTesting deserialized functions directly:');
-      console.log('Condition(100):', condition(100));
-      console.log('Validate(50, 100):', validate(50, 100));
 
       const validData = { value: 50, other: 100 };
       const invalidData = { value: 150, other: 100 };
 
-      console.log('\nTesting valid data:', validData);
       const validResult = validateAgainstModel(validData, deserialized);
-      console.log('Valid Result:', JSON.stringify(validResult, null, 2));
 
-      console.log('\nTesting invalid data:', invalidData);
       const invalidResult = validateAgainstModel(invalidData, deserialized);
-      console.log('Invalid Result:', JSON.stringify(invalidResult, null, 2));
 
       expect(isValidationError(validResult)).toBe(false);
-      if (isValidationError(validResult)) {
-        console.log(
-          'Unexpected validation errors for valid data:',
-          validResult.errors
-        );
-      }
       expect(isValidationError(invalidResult)).toBe(true);
-      if (isValidationError(invalidResult)) {
-        console.log(
-          'Validation errors for invalid data:',
-          invalidResult.errors
-        );
-      }
     });
 
     it('should handle regular functions', () => {
@@ -689,38 +607,25 @@ describe('Dynamic Validator Tests', () => {
           dependsOn: {
             field: 'config',
             condition: (config: any) => {
-              console.log('Condition - config:', config);
               if (!config || typeof config !== 'object') {
-                console.log('Condition failed: config is not an object');
                 return false;
               }
               const { min, max, isEven } = config;
-              console.log('Condition - extracted values:', {
-                min,
-                max,
-                isEven,
-              });
               const result =
                 min !== undefined &&
                 max !== undefined &&
                 min < max &&
                 typeof isEven === 'boolean';
-              console.log('Condition result:', result);
               return result;
             },
             validate: (value: number, config: any) => {
-              console.log('Validate - value:', value, 'config:', config);
               const { min, max, isEven } = config;
-              console.log('Validate - extracted values:', { min, max, isEven });
               if (value < min || value > max) {
-                console.log('Validation failed: value out of range');
                 return false;
               }
               if (isEven && value % 2 !== 0) {
-                console.log('Validation failed: value not even when required');
                 return false;
               }
-              console.log('Validation passed');
               return true;
             },
             message: 'Invalid value for given configuration',
@@ -752,17 +657,10 @@ describe('Dynamic Validator Tests', () => {
 
       const validResult = validateAgainstModel(validData, deserialized);
 
-      // console.log('\nTesting invalid data:', invalidData);
       const invalidResult = validateAgainstModel(invalidData, deserialized);
-      // console.log('Invalid Result:', JSON.stringify(invalidResult, null, 2));
 
       expect(isValidationError(validResult)).toBe(false);
-      if (isValidationError(validResult)) {
-        console.log(
-          'Unexpected validation errors for valid data:',
-          validResult.errors
-        );
-      }
+      expect(isValidationError(invalidResult)).toBe(true);
       expect(isValidationError(invalidResult)).toBe(true);
     });
   });
@@ -860,9 +758,7 @@ describe('Dependency Validation Tests', () => {
     };
 
     const validResult = validateAgainstModel(validData, model);
-    console.log('Valid Result:', validResult);
     const invalidResult = validateAgainstModel(invalidData, model);
-    console.log('Invalid Result:', invalidResult);
 
     expect(isValidationError(validResult)).toBe(false);
     expect(isValidationError(invalidResult)).toBe(true);
@@ -902,17 +798,8 @@ describe('Dependency Validation Tests', () => {
 
     // Test serialization and deserialization
     const serialized = serializeValidationModel(model);
-    console.log('\nSerialized Model:', serialized);
 
     const deserialized = deserializeValidationModel(serialized);
-    console.log(
-      '\nDeserialized Model:',
-      JSON.stringify(
-        deserialized,
-        (key, val) => (typeof val === 'function' ? '[Function]' : val),
-        2
-      )
-    );
 
     const validData = {
       students: [
@@ -930,10 +817,8 @@ describe('Dependency Validation Tests', () => {
 
     // Test with deserialized model
     const validResult = validateAgainstModel(validData, deserialized);
-    console.log('\nValid Result:', validResult);
 
     const invalidResult = validateAgainstModel(invalidData, deserialized);
-    console.log('\nInvalid Result:', invalidResult);
 
     expect(isValidationError(validResult)).toBe(false);
     expect(isValidationError(invalidResult)).toBe(true);
@@ -943,11 +828,6 @@ describe('Dependency Validation Tests', () => {
         'Status must match grade threshold'
       );
     }
-
-    // Additional assertions to verify model structure is preserved
-    // expect(deserialized).toHaveProperty('students.items.fields.status.dependsOn');
-    // expect(typeof deserialized.students.items.fields.status.dependsOn.condition).toBe('function');
-    // expect(typeof deserialized.students.items.fields.status.dependsOn.validate).toBe('function');
   });
 
   it('should handle multiple dependencies', () => {

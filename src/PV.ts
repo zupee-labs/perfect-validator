@@ -3,10 +3,10 @@ import { validateAgainstModel, validateDataModel } from './validators';
 import { deserializeValidationModel, serializeValidationModel } from './utils';
 import userProfileModel, { testCases } from './utils/model';
 export class PV {
-  private storage: PerfectValidator.IModelStorage;
+  private storage?: PerfectValidator.IModelStorage;
   private static instance: PV | null = null;
 
-  constructor(storage: PerfectValidator.IModelStorage) {
+  constructor(storage?: PerfectValidator.IModelStorage) {
     this.storage = storage;
   }
 
@@ -32,7 +32,7 @@ export class PV {
     return validateAgainstModel(data, model);
   }
 
-  public static getInstance(storage: PerfectValidator.IModelStorage): PV {
+  public static getInstance(storage?: PerfectValidator.IModelStorage): PV {
     if (!PV.instance) {
       try {
         PV.instance = new PV(storage);
@@ -53,6 +53,10 @@ export class PV {
     data: T,
     modelName: string
   ): Promise<PerfectValidator.ValidationResponse<T>> {
+    if (!this.storage) {
+      throw new Error('Storage is required for dynamic validation');
+    }
+
     try {
       const serializedModel: string | null = await this.storage.getModel(
         modelName
@@ -93,10 +97,12 @@ export class PV {
    */
   public async storeModel(
     modelName: string,
-    model: PerfectValidator.ValidationModel,
-    testData?: any
+    model: PerfectValidator.ValidationModel
   ): Promise<PerfectValidator.ModelValidationResponse> {
     try {
+      if (!this.storage) {
+        throw new Error('Storage is required for model storage');
+      }
       // 1. Validate model structure
       const modelValidation: PerfectValidator.ModelValidationResponse = this.validateModel(
         model
@@ -186,8 +192,8 @@ export class PV {
   /**
    * Get all supported data types with descriptions
    */
-  public getDataTypes(): Record<PerfectValidator.ValidationType, string> {
-    return PerfectValidator.DataTypeDescriptions;
+  public getDataTypes(): Record<string, PerfectValidator.ValidationType> {
+    return PerfectValidator.ValidationTypes;
   }
 
   /**

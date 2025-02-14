@@ -10,260 +10,213 @@ npm install perfect-validator
 
 ## Usage
 
-See the examples below for usage.
-
-## Features
-
-- Static and dynamic validation
-- Serializable validation models
-- Function serialization/deserialization
-- Dependency-based validation
-- Model versioning
-- Type-safe validation responses
-
-## Discussion
-
-### Why PV?
-
-PV was created to solve common validation challenges in modern applications:
-
-1. **Dynamic Validation Rules**
-   - Rules that can change without code deployment
-   - Support for complex business logic
-   - Version control of validation rules
-
-2. **Function Serialization**
-   - Store and retrieve validation functions
-   - Share validation logic across systems
-   - Safe deserialization of functions
-
-3. **Type Safety**
-   - Built with TypeScript for better reliability
-   - Compile-time type checking
-   - IDE support and autocompletion
-
-### Key Design Decisions
-
-1. **Model Structure**
-   ```typescript
-   interface ValidationRule {
-       type?: ValidationType;
-       optional?: boolean;
-       validate?: (value: any) => boolean;
-       message?: string;
-   }
-   ```
-   - Simple yet flexible validation rules
-   - Support for custom validation functions
-   - Clear error messaging
-
-2. **Storage Interface**
-   ```typescript
-   interface IModelStorage {
-       storeModelVersion(modelName: string, model: string): Promise<void>;
-       getLatestModelVersion(modelName: string): Promise<ModelVersion | null>;
-   }
-   ```
-   - Version control built-in
-   - Async storage operations
-   - Flexible storage implementation
-
-3. **Validation Types**
-   - String (`S`)
-   - Number (`N`)
-   - Boolean (`B`)
-   - Email (`EMAIL`)
-   - URL (`URL`)
-   - Custom regex
-   - And more...
-
-### Common Use Cases
-
-1. **Form Validation**
-   ```typescript
-   const formModel = {
-       email: { type: 'EMAIL', message: 'Invalid email' },
-       age: { type: 'N', min: 18, message: 'Must be 18+' }
-   };
-   ```
-
-2. **API Validation**
-   ```typescript
-   const apiModel = {
-       id: { type: 'S', pattern: '^[0-9a-f]{24}$' },
-       data: { type: 'M', fields: { ... } }
-   };
-   ```
-
-3. **Dependent Fields**
-   ```typescript
-   const passwordModel = {
-       password: { type: 'S', minLength: 8 },
-       confirm: {
-           dependsOn: {
-               field: 'password',
-               validate: (confirm, pass) => confirm === pass,
-               message: 'Passwords must match'
-           }
-       }
-   };
-   ```
-
-## Dynamic Validation Examples
-
-### 1. Basic Dynamic Validation
-
+### Static Validation (Frontend/Backend)
 ```typescript
-// Store the validation model
+import { PV } from 'perfect-validator';
+
+// Get validator instance without storage
+const validator = PV.getInstance();
+
+// Simple user profile model
 const userModel = {
-    username: {
+  name: { 
+    type: 'S', 
+    minLength: 2,
+    maxLength: 50 
+  },
+  age: { 
+    type: 'N', 
+    min: 13,
+    message: 'User must be at least 13 years old'
+  },
+  email: { 
+    type: 'EMAIL',
+    message: 'Invalid email format'
+  },
+  preferences: {
+    type: 'M',
+    fields: {
+      theme: {
         type: 'S',
-        minLength: 3,
-        maxLength: 20,
-        pattern: '^[a-zA-Z0-9_]+$',
-        message: 'Username must be 3-20 characters, alphanumeric with underscore'
-    },
-    email: { 
-        type: 'EMAIL',
-        message: 'Invalid email format'
+        values: ['light', 'dark', 'system'],
+        default: 'system'
+      },
+      notifications: {
+        type: 'B',
+        default: true
+      }
     }
+  }
 };
 
-// Store model for later use
-await validator.storeModel('userModel', userModel);
-
-// Later, validate data using the stored model
+// Validate data
 const userData = {
-    username: 'john_doe',
-    email: 'john@example.com'
+  name: 'John Doe',
+  age: 25,
+  email: 'john@example.com',
+  preferences: {
+    theme: 'dark',
+    notifications: true
+  }
 };
 
-const result = await validator.validateDynamic(userData, 'userModel');
+const result = validator.validateStatic(userData, userModel);
+console.log(result); // { isValid: true, ...userData }
 ```
 
-### 2. Complex Dynamic Validation with Dependencies
+### Dynamic Validation (Backend with MongoDB)
+```typescript
+import { PV, MongoStorage } from 'perfect-validator';
+import { MongoClient } from 'mongodb';
 
+async function setupValidator() {
+  // Connect to MongoDB
+  const client = await MongoClient.connect('mongodb://localhost:27017');
+  const db = client.db('your_database');
+  
+  // Create storage instance
+  const storage = new MongoStorage(db);
+  
+  // Get validator instance with storage
+  const validator = PV.getInstance(storage);
+
+  // Store model for later use
+  await validator.storeModel('userProfile', userModel);
+
+  // Later, validate data using stored model
+  const result = await validator.validateDynamic(userData, 'userProfile');
+  console.log(result);
+}
+```
+
+## Advanced Examples
+
+### Dependent Field Validation
 ```typescript
 const orderModel = {
-    orderType: {
+  items: {
+    type: 'L',
+    items: {
+      type: 'M',
+      fields: {
+        productId: { type: 'S' },
+        quantity: { type: 'N', min: 1 }
+      }
+    }
+  },
+  shipping: {
+    type: 'M',
+    fields: {
+      method: {
         type: 'S',
-        values: ['standard', 'express', 'international'],
-        message: 'Invalid order type'
-    },
-    shippingAddress: {
-        type: 'M',
-        fields: {
-            country: { type: 'S' },
-            zipCode: { type: 'S' }
-        },
-        dependsOn: {
-            field: 'orderType',
-            condition: (type) => type === 'international',
-            validate: (address) => address.country && address.country.length === 2,
-            message: 'International orders require a valid country code'
-        }
-    },
-    insurance: {
+        values: ['standard', 'express']
+      },
+      insurance: {
         type: 'B',
         dependsOn: {
-            field: 'orderType',
-            condition: (type) => type === 'international',
-            validate: (insurance) => insurance === true,
-            message: 'Insurance is required for international orders'
+          field: 'shipping.method',
+          condition: (method) => method === 'express',
+          validate: (insurance) => insurance === true,
+          message: 'Insurance is required for express shipping'
         }
+      }
     }
+  }
 };
-
-// Store the model
-await validator.storeModel('orderModel', orderModel);
-
-// Later validate orders
-const order1 = {
-    orderType: 'international',
-    shippingAddress: {
-        country: 'US',
-        zipCode: '12345'
-    },
-    insurance: true
-};
-
-const order2 = {
-    orderType: 'standard',
-    shippingAddress: {
-        zipCode: '12345'
-    },
-    insurance: false
-};
-
-const result1 = await validator.validateDynamic(order1, 'orderModel'); // Valid
-const result2 = await validator.validateDynamic(order2, 'orderModel'); // Valid
 ```
 
-### 3. Versioned Model Validation
-
+### Custom Validation Functions
 ```typescript
-// Version 1 of the model
-const userModelV1 = {
-    name: { type: 'S', minLength: 2 },
-    age: { type: 'N', min: 18 }
+const passwordModel = {
+  password: {
+    type: 'S',
+    validate: (value) => {
+      const hasUpper = /[A-Z]/.test(value);
+      const hasLower = /[a-z]/.test(value);
+      const hasNumber = /[0-9]/.test(value);
+      return hasUpper && hasLower && hasNumber;
+    },
+    message: 'Password must contain uppercase, lowercase and number'
+  }
 };
-
-// Version 2 adds email validation
-const userModelV2 = {
-    name: { type: 'S', minLength: 2 },
-    age: { type: 'N', min: 18 },
-    email: { type: 'EMAIL' }
-};
-
-// Store different versions
-await validator.storeModel('userModel', userModelV1); // Version 1
-await validator.storeModel('userModel', userModelV2); // Version 2
-
-// Validate against latest version
-const user = {
-    name: 'John',
-    age: 25,
-    email: 'john@example.com'
-};
-
-const result = await validator.validateDynamic(user, 'userModel');
 ```
 
-### 4. Custom Function Validation
+## Supported Types
+- `S` - String
+- `N` - Number
+- `B` - Boolean
+- `L` - List/Array
+- `M` - Map/Object
+- `EMAIL` - Email
+- `URL` - URL
+- `DATE` - Date
+- `PHONE` - Phone Number
+- `REGEX` - Custom Regex Pattern
 
+## Features
+- ✅ Static validation (no storage required)
+- ✅ Dynamic validation with MongoDB
+- ✅ Type-safe validation responses
+- ✅ Dependent field validation
+- ✅ Custom validation functions
+- ✅ Default values
+- ✅ Optional fields
+- ✅ Array validation
+- ✅ Nested object validation
+
+## Why PV?
+
+PV was created to solve validation challenges in modern distributed applications:
+
+### 1. Centralized Validation Rules
+- Store validation rules in a central database
+- Update rules without code deployment
+- Share validation logic across multiple services
+- Consistent validation across frontend and backend
+
+### 2. Flexible Usage
+- **Frontend**: Use static validation without database
+- **Backend**: Use dynamic validation with database storage
+- **Microservices**: Share validation rules across services
+- **API Gateway**: Validate requests using stored rules
+
+### 3. Advanced Features
+- **Function Serialization**: Store and retrieve validation functions safely
+- **Dependency Validation**: Complex business rules with field dependencies
+- **Type Safety**: Built with TypeScript for better reliability
+- **Default Values**: Automatic value initialization
+
+### Example Use Cases
+
+#### 1. Multi-Service Architecture
 ```typescript
-const customModel = {
-    password: {
-        type: 'S',
-        validate: (value) => {
-            // Custom password strength check
-            const hasUpper = /[A-Z]/.test(value);
-            const hasLower = /[a-z]/.test(value);
-            const hasNumber = /[0-9]/.test(value);
-            const hasSpecial = /[!@#$%^&*]/.test(value);
-            return hasUpper && hasLower && hasNumber && hasSpecial;
-        },
-        message: 'Password must contain uppercase, lowercase, number and special character'
-    }
-};
+// Service A: Stores the validation rules
+await validator.storeModel('userProfile', userModel);
 
-// Store model with custom function
-await validator.storeModel('passwordModel', customModel);
-
-// Later validate passwords
-const password1 = { password: 'Abc123!@#' };
-const password2 = { password: 'weakpass' };
-
-const result1 = await validator.validateDynamic(password1, 'passwordModel'); // Valid
-const result2 = await validator.validateDynamic(password2, 'passwordModel'); // Invalid
+// Service B: Uses stored rules
+const result = await validator.validateDynamic(userData, 'userProfile');
 ```
 
-## Project Structure
+#### 2. Frontend-Backend Consistency
+```typescript
+// Backend: Store rules in DB
+await validator.storeModel('registrationRules', regModel);
 
-- `src/` - Source code for the library
-- `test/` - Test cases for the library
-- `interfaces/` - TypeScript interfaces for the library
-- `utils/` - Utility functions for the library
-- `storage/` - Storage implementations for the library
+// Frontend: Use same rules statically
+const result = validator.validateStatic(formData, regModel);
+```
+
+#### 3. Dynamic Rule Updates
+```typescript
+// Update rules without deployment
+const updatedRules = {
+  ...existingRules,
+  age: { type: 'N', min: 16 } // Changed age requirement
+};
+await validator.storeModel('userProfile', updatedRules);
+```
+
+## Contributing
+Contributions are welcome! Please read our contributing guidelines before submitting a pull request.
 
 Made with ❤️ by [Zupee](https://zupee.com)

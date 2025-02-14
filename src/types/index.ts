@@ -10,7 +10,7 @@ export namespace PerfectValidator {
     | 'DATE'
     | 'PHONE'
     | 'REGEX';
-  export const ValidationTypes = {
+  export const ValidationTypes: Record<string, ValidationType> = {
     STRING: 'S' as ValidationType,
     NUMBER: 'N' as ValidationType,
     BOOLEAN: 'B' as ValidationType,
