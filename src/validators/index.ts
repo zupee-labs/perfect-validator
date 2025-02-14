@@ -1,8 +1,18 @@
-import { PerfectValidator } from '../types/index';
+import { PerfectValidator } from '../types';
 
 // Constants
-const VALID_TYPES_STRING:string[] = ['S', 'N', 'B', 'L', 'M', 'EMAIL', 'URL', 'DATE', 'PHONE', 'REGEX'] ;
-
+const VALID_TYPES: PerfectValidator.ValidationType[] = [
+    'S',
+    'N',
+    'B',
+    'L',
+    'M',
+    'EMAIL',
+    'URL',
+    'DATE',
+    'PHONE',
+    'REGEX',
+  ];
 // Regex patterns
 const PATTERNS: Record<string, RegExp> = {
     EMAIL: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
@@ -145,7 +155,7 @@ export function validateDataModel(model: PerfectValidator.ValidationModel): Perf
     function validateField(field: PerfectValidator.ValidationRule | string, path: string): void {
         // Handle simple string type
         if (typeof field === 'string') {
-            if (!VALID_TYPES_STRING.includes(field as PerfectValidator.ValidationType)) {
+            if (!VALID_TYPES.includes(field as PerfectValidator.ValidationType)) {
                 errors.push(`Invalid type "${field}" at ${path}`);
             }
             return;
@@ -160,7 +170,7 @@ export function validateDataModel(model: PerfectValidator.ValidationModel): Perf
         const typedField: PerfectValidator.ValidationRule = field;
 
         // Check for valid type if specified
-        if (typedField.type && !VALID_TYPES_STRING.includes(typedField.type)) {
+        if (typedField.type && !VALID_TYPES.includes(typedField.type)) {
             errors.push(`Invalid type "${typedField.type}" at ${path}`);
         }
 
@@ -400,6 +410,6 @@ export function validateAgainstModel<T>(
 
     return errors.length > 0 
         ? { isValid: false, errors } 
-        : dataWithDefaults;
+        : { isValid: true, data: dataWithDefaults };
 }
 

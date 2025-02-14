@@ -10,7 +10,7 @@ export namespace PerfectValidator {
     | 'DATE'
     | 'PHONE'
     | 'REGEX';
-  export const ValidationTypes = {
+  export const ValidationTypes: Record<string, ValidationType> = {
     STRING: 'S' as ValidationType,
     NUMBER: 'N' as ValidationType,
     BOOLEAN: 'B' as ValidationType,
@@ -88,7 +88,7 @@ export namespace PerfectValidator {
   }
 
   export type ValidationResponse<T> =
-    | T // Success case - return validated data directly
+    | { isValid: true; data: T } // Success case - return validated data directly
     | { isValid: false; errors: ValidationError[] } // Error case
     | null; // Add null as a possible response type
 
