@@ -2,6 +2,16 @@
 
 A TypeScript-based validation library that supports both static and dynamic validation with serializable models.
 
+[![NPM Version][npm-version-image]][npm-url]
+[![Linux Build][github-actions-ci-image]][github-actions-ci-url]
+[![NPM downloads][npm-downloads-url]][npm-url]
+
+[npm-url]: https://npmjs.org/package/perfect-validator
+[npm-version-image]: https://img.shields.io/npm/v/perfect-validator.svg?style=flat
+[github-actions-ci-image]: https://badgen.net/github/checks/zupee-labs/perfect-validator/main?label=linux
+[github-actions-ci-url]: https://github.com/zupee-labs/perfect-validator/actions/workflows/main.yml
+[npm-downloads-url]: https://img.shields.io/npm/dm/perfect-validator.svg?style=flat
+
 ## Installation
 
 ```bash

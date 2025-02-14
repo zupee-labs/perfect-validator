@@ -1,5 +1,5 @@
 {
-  "version": "1.2.0",
+  "version": "0.1.0",
   "license": "MIT",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
@@ -19,6 +19,7 @@
     "prepare": "tsdx build",
     "size": "size-limit",
     "analyze": "size-limit --why",
+    "coverage": "tsdx test --coverage",
     "example": "ts-node -r tsconfig-paths/register -P tsconfig.example.json examples/mongoExample.ts"
   },
   "husky": {

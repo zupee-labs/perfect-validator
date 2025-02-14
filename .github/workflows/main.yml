@@ -1,0 +1,38 @@
+name: CI
+on: [push]
+jobs:
+  build:
+    name: Build, lint, and test on Node ${{ matrix.node }} and ${{ matrix.os }} and {{ matrix.mongo }}
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        node: ["22.x"]
+        os: [ubuntu-latest]
+        mongo: ["7.0"]
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Use Node ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Start MongoDB
+        uses: supercharge/mongodb-github-action@1.11.0
+        with:
+          mongodb-version: ${{ matrix.mongo }}
+
+      - name: Install deps and build (with cache)
+        uses: bahmutov/npm-install@v1
+
+      - name: Lint
+        run: npm lint
+
+      - name: Test
+        run: npm test --ci --coverage --maxWorkers=2
+
+      - name: Build
+        run: npm build
