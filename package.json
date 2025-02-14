@@ -2,6 +2,13 @@
   "version": "0.1.1",
   "license": "MIT",
   "main": "dist/index.js",
+  "module": "dist/perfect-validator.esm.js",
+  "exports": {
+    ".": {
+      "require": "./dist/index.js",
+      "import": "./dist/perfect-validator.esm.js"
+    }
+  },
   "typings": "dist/index.d.ts",
   "files": [
     "dist",
@@ -35,7 +42,6 @@
   },
   "name": "perfect-validator",
   "author": "Mayank Kakkar",
-  "module": "dist/perfect-validator.esm.js",
   "size-limit": [
     {
       "path": "dist/perfect-validator.cjs.production.min.js",
