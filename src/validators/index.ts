@@ -1,3 +1,4 @@
+// eslint-disable-next-line
 import { PerfectValidator } from '../types';
 
 // Constants
