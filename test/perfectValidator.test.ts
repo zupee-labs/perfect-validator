@@ -666,7 +666,7 @@ describe('Dynamic Validator Tests', () => {
   });
   describe('Email Validation', () => {
     const emailModel: PerfectValidator.ValidationModel = {
-      email: { type: 'EMAIL' }
+      email: { type: 'EMAIL' },
     };
 
     const validEmails = [
@@ -675,7 +675,7 @@ describe('Dynamic Validator Tests', () => {
       'user+label@domain.com',
       'test.email@subdomain.domain.com',
       'user123@domain.com',
-      'USER@DOMAIN.COM'
+      'USER@DOMAIN.COM',
     ];
 
     const invalidEmails = [
@@ -685,22 +685,22 @@ describe('Dynamic Validator Tests', () => {
       'user@domain.',
       'user@dom@in.com',
       'user name@domain.com',
-      'user@domain..com'
+      'user@domain..com',
     ];
 
-    test.each(validEmails)('should validate correct email: %s', (email) => {
+    test.each(validEmails)('should validate correct email: %s', email => {
       const result = validateAgainstModel({ email }, emailModel);
       expect(isValidationError(result)).toBe(false);
     });
 
-    test.each(invalidEmails)('should reject invalid email: %s', (email) => {
+    test.each(invalidEmails)('should reject invalid email: %s', email => {
       const result = validateAgainstModel({ email }, emailModel);
       expect(isValidationError(result)).toBe(true);
     });
   });
   describe('URL Validation', () => {
     const urlModel: PerfectValidator.ValidationModel = {
-      url: { type: 'URL' }
+      url: { type: 'URL' },
     };
 
     const validUrls = [
@@ -709,7 +709,7 @@ describe('Dynamic Validator Tests', () => {
       'https://example.com:8080',
       'http://example.com/path',
       'https://example.com/path?param=value',
-      'https://example.com:8080/path#section'
+      'https://example.com:8080/path#section',
     ];
 
     const invalidUrls = [
@@ -719,30 +719,25 @@ describe('Dynamic Validator Tests', () => {
       'https://example',
       'https://.com',
       'https://example.c',
-      'http://example.com:abc'
+      'http://example.com:abc',
     ];
 
-    test.each(validUrls)('should validate correct URL: %s', (url) => {
+    test.each(validUrls)('should validate correct URL: %s', url => {
       const result = validateAgainstModel({ url }, urlModel);
       expect(isValidationError(result)).toBe(false);
     });
 
-    test.each(invalidUrls)('should reject invalid URL: %s', (url) => {
+    test.each(invalidUrls)('should reject invalid URL: %s', url => {
       const result = validateAgainstModel({ url }, urlModel);
       expect(isValidationError(result)).toBe(true);
     });
   });
   describe('Date Validation', () => {
     const dateModel: PerfectValidator.ValidationModel = {
-      date: { type: 'DATE' }
+      date: { type: 'DATE' },
     };
 
-    const validDates = [
-      '2024-03-15',
-      '2000-01-01',
-      '2099-12-31',
-      '2023-11-30'
-    ];
+    const validDates = ['2024-03-15', '2000-01-01', '2099-12-31', '2023-11-30'];
 
     const invalidDates = [
       '2024-13-01', // Invalid month
@@ -753,23 +748,23 @@ describe('Dynamic Validator Tests', () => {
       '2100-01-01', // Year after 2099
       '2024/03/15', // Wrong format
       '15-03-2024', // Wrong format
-      '2024-3-15',  // Missing leading zero
-      '2024-03-5'   // Missing leading zero
+      '2024-3-15', // Missing leading zero
+      '2024-03-5', // Missing leading zero
     ];
 
-    test.each(validDates)('should validate correct date: %s', (date) => {
+    test.each(validDates)('should validate correct date: %s', date => {
       const result = validateAgainstModel({ date }, dateModel);
       expect(isValidationError(result)).toBe(false);
     });
 
-    test.each(invalidDates)('should reject invalid date: %s', (date) => {
+    test.each(invalidDates)('should reject invalid date: %s', date => {
       const result = validateAgainstModel({ date }, dateModel);
       expect(isValidationError(result)).toBe(true);
     });
   });
   describe('Phone Validation', () => {
     const phoneModel: PerfectValidator.ValidationModel = {
-      phone: { type: 'PHONE' }
+      phone: { type: 'PHONE' },
     };
 
     const validPhones = [
@@ -777,7 +772,7 @@ describe('Dynamic Validator Tests', () => {
       '+44 20 7123 4567',
       '+86 123 4567 8901',
       '123-456-7890',
-      '+1-555-555-5555'
+      '+1-555-555-5555',
     ];
 
     const invalidPhones = [
@@ -785,22 +780,21 @@ describe('Dynamic Validator Tests', () => {
       '123',
       'abc-def-ghij',
       '+1234567890123456', // Too long
-      '555-abc-1234',      // Contains letters
-      '(555)5555555',      // Missing separators
-      '+00 123'            // Too short
+      '555-abc-1234', // Contains letters
+      '(555)5555555', // Missing separators
+      '+00 123', // Too short
     ];
 
-    test.each(validPhones)('should validate correct phone: %s', (phone) => {
+    test.each(validPhones)('should validate correct phone: %s', phone => {
       const result = validateAgainstModel({ phone }, phoneModel);
       expect(isValidationError(result)).toBe(false);
     });
 
-    test.each(invalidPhones)('should reject invalid phone: %s', (phone) => {
+    test.each(invalidPhones)('should reject invalid phone: %s', phone => {
       const result = validateAgainstModel({ phone }, phoneModel);
       expect(isValidationError(result)).toBe(true);
     });
   });
-
 });
 
 describe('Dependency Validation Tests', () => {

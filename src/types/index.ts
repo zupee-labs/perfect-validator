@@ -33,7 +33,7 @@ export namespace PerfectValidator {
     DATE: 'Date type - Valid date format',
     PHONE: 'Phone type - Valid phone number format',
     REGEX: 'Regex type - Custom pattern matching',
-  } as const; 
+  } as const;
   export interface ValidationDependency {
     field: string;
     condition: (value: any) => boolean;

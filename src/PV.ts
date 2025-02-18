@@ -1,7 +1,11 @@
 import { PerfectValidator } from './types';
 import { validateAgainstModel, validateDataModel } from './validators';
 
-import { deserializeValidationModel, serializeValidationModel, getValidationTypeParams } from './utils';
+import {
+  deserializeValidationModel,
+  serializeValidationModel,
+  getValidationTypeParams,
+} from './utils';
 import userProfileModel, { testCases } from './utils/model';
 export class PV {
   private storage?: PerfectValidator.IModelStorage;
@@ -210,12 +214,16 @@ export class PV {
   public getDataExample(): Array<{ name: string; data: any }> {
     return testCases;
   }
-  public getValidationTypeParams(type: PerfectValidator.ValidationType): PerfectValidator.IValidationTypeParams {
+  public getValidationTypeParams(
+    type: PerfectValidator.ValidationType
+  ): PerfectValidator.IValidationTypeParams {
     try {
       return getValidationTypeParams(type);
     } catch (error) {
       if (error instanceof Error) {
-        throw new Error(`Failed to get validation type params: ${error.message}`);
+        throw new Error(
+          `Failed to get validation type params: ${error.message}`
+        );
       }
       throw new Error('Failed to get validation type params: Unknown error');
     }

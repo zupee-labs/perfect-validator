@@ -220,9 +220,12 @@ export const deserializeValidationModel = (
   }
 };
 
-export function getValidationTypeParams(type: PerfectValidator.ValidationType): PerfectValidator.IValidationTypeParams {
-  const params: PerfectValidator.IValidationTypeParams = ValidationTypeParams[type];
-  if (!params || params === undefined|| params === null) {
+export function getValidationTypeParams(
+  type: PerfectValidator.ValidationType
+): PerfectValidator.IValidationTypeParams {
+  const params: PerfectValidator.IValidationTypeParams =
+    ValidationTypeParams[type];
+  if (!params || params === undefined || params === null) {
     throw new Error(`Invalid validation type: ${type}`);
   }
   return params;
