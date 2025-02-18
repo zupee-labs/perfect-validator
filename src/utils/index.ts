@@ -1,4 +1,5 @@
 import { PerfectValidator } from '../types';
+import { ValidationTypeParams } from '../types/typeParams';
 import { validateDataModel } from '../validators';
 
 export const deserializeFunction = (
@@ -16,7 +17,6 @@ export const deserializeFunction = (
       .replace(/function anonymous/, '')
       .replace(/\s+/g, ' ')
       .trim();
-
     if (normalizedStr.includes('=>')) {
       // Multi-line arrow with block
       const blockArrowMatch = normalizedStr.match(
@@ -219,3 +219,11 @@ export const deserializeValidationModel = (
     throw error;
   }
 };
+
+export function getValidationTypeParams(type: PerfectValidator.ValidationType): PerfectValidator.IValidationTypeParams {
+  const params: PerfectValidator.IValidationTypeParams = ValidationTypeParams[type];
+  if (!params || params === undefined|| params === null) {
+    throw new Error(`Invalid validation type: ${type}`);
+  }
+  return params;
+}

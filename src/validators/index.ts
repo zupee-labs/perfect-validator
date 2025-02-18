@@ -16,10 +16,10 @@ const VALID_TYPES: PerfectValidator.ValidationType[] = [
   ];
 // Regex patterns
 const PATTERNS: Record<string, RegExp> = {
-    EMAIL: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-    URL: /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/,
-    PHONE: /^\+?[\d\s-]{10,}$/,
-    DATE: /^\d{4}-\d{2}-\d{2}$/
+    EMAIL: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z]{2,})+$/,
+    URL: /^(https?:\/\/)([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})(:[0-9]{1,5})?(\/[^\s]*)?$/,
+    PHONE: /^\+?[1-9]\d{0,2}[-.\s]?\(?\d{2,4}\)?[-.\s]?\d{3,4}[-.\s]?\d{3,4}$/,
+    DATE: /^(19|20)\d{2}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/
 } as const;
 
 // Helper functions
@@ -55,6 +55,7 @@ function parseArrayType(type: string): { isArray: boolean; elementType: string }
 function isValidationRule(rule: PerfectValidator.ValidationRule | string): rule is PerfectValidator.ValidationRule {
     return typeof rule === 'object' && rule !== null;
 }
+
 
 function applyDefaults(data: any, model: PerfectValidator.ValidationModel): any {
     const result = { ...data };
@@ -345,7 +346,6 @@ export function validateAgainstModel<T>(
                 });
             }
         }
-
         // Handle array validation
         if (rule.items && Array.isArray(value)) {
             value.forEach((item, index) => {

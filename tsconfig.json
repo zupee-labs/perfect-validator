@@ -15,6 +15,7 @@
     "strict": false,
     // linter checks for common issues
     "noImplicitReturns": true,
+    "noImplicitAny": true,
     "noFallthroughCasesInSwitch": true,
     // disable unused variable checks
     "noUnusedLocals": false,

@@ -664,6 +664,143 @@ describe('Dynamic Validator Tests', () => {
       expect(isValidationError(invalidResult)).toBe(true);
     });
   });
+  describe('Email Validation', () => {
+    const emailModel: PerfectValidator.ValidationModel = {
+      email: { type: 'EMAIL' }
+    };
+
+    const validEmails = [
+      'test@example.com',
+      'user.name@domain.com',
+      'user+label@domain.com',
+      'test.email@subdomain.domain.com',
+      'user123@domain.com',
+      'USER@DOMAIN.COM'
+    ];
+
+    const invalidEmails = [
+      'invalid.email',
+      '@domain.com',
+      'user@.com',
+      'user@domain.',
+      'user@dom@in.com',
+      'user name@domain.com',
+      'user@domain..com'
+    ];
+
+    test.each(validEmails)('should validate correct email: %s', (email) => {
+      const result = validateAgainstModel({ email }, emailModel);
+      expect(isValidationError(result)).toBe(false);
+    });
+
+    test.each(invalidEmails)('should reject invalid email: %s', (email) => {
+      const result = validateAgainstModel({ email }, emailModel);
+      expect(isValidationError(result)).toBe(true);
+    });
+  });
+  describe('URL Validation', () => {
+    const urlModel: PerfectValidator.ValidationModel = {
+      url: { type: 'URL' }
+    };
+
+    const validUrls = [
+      'https://example.com',
+      'http://subdomain.example.com',
+      'https://example.com:8080',
+      'http://example.com/path',
+      'https://example.com/path?param=value',
+      'https://example.com:8080/path#section'
+    ];
+
+    const invalidUrls = [
+      'not-a-url',
+      'ftp://example.com',
+      'http:/example.com',
+      'https://example',
+      'https://.com',
+      'https://example.c',
+      'http://example.com:abc'
+    ];
+
+    test.each(validUrls)('should validate correct URL: %s', (url) => {
+      const result = validateAgainstModel({ url }, urlModel);
+      expect(isValidationError(result)).toBe(false);
+    });
+
+    test.each(invalidUrls)('should reject invalid URL: %s', (url) => {
+      const result = validateAgainstModel({ url }, urlModel);
+      expect(isValidationError(result)).toBe(true);
+    });
+  });
+  describe('Date Validation', () => {
+    const dateModel: PerfectValidator.ValidationModel = {
+      date: { type: 'DATE' }
+    };
+
+    const validDates = [
+      '2024-03-15',
+      '2000-01-01',
+      '2099-12-31',
+      '2023-11-30'
+    ];
+
+    const invalidDates = [
+      '2024-13-01', // Invalid month
+      '2024-00-01', // Invalid month
+      '2024-01-32', // Invalid day
+      '2024-01-00', // Invalid day
+      '1899-12-31', // Year before 1900
+      '2100-01-01', // Year after 2099
+      '2024/03/15', // Wrong format
+      '15-03-2024', // Wrong format
+      '2024-3-15',  // Missing leading zero
+      '2024-03-5'   // Missing leading zero
+    ];
+
+    test.each(validDates)('should validate correct date: %s', (date) => {
+      const result = validateAgainstModel({ date }, dateModel);
+      expect(isValidationError(result)).toBe(false);
+    });
+
+    test.each(invalidDates)('should reject invalid date: %s', (date) => {
+      const result = validateAgainstModel({ date }, dateModel);
+      expect(isValidationError(result)).toBe(true);
+    });
+  });
+  describe('Phone Validation', () => {
+    const phoneModel: PerfectValidator.ValidationModel = {
+      phone: { type: 'PHONE' }
+    };
+
+    const validPhones = [
+      '+1(555)555-5555',
+      '+44 20 7123 4567',
+      '+86 123 4567 8901',
+      '123-456-7890',
+      '+1-555-555-5555'
+    ];
+
+    const invalidPhones = [
+      '+1',
+      '123',
+      'abc-def-ghij',
+      '+1234567890123456', // Too long
+      '555-abc-1234',      // Contains letters
+      '(555)5555555',      // Missing separators
+      '+00 123'            // Too short
+    ];
+
+    test.each(validPhones)('should validate correct phone: %s', (phone) => {
+      const result = validateAgainstModel({ phone }, phoneModel);
+      expect(isValidationError(result)).toBe(false);
+    });
+
+    test.each(invalidPhones)('should reject invalid phone: %s', (phone) => {
+      const result = validateAgainstModel({ phone }, phoneModel);
+      expect(isValidationError(result)).toBe(true);
+    });
+  });
+
 });
 
 describe('Dependency Validation Tests', () => {
