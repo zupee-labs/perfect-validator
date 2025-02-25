@@ -52,23 +52,46 @@ export class PV {
   }
 
   /**
-   * Dynamic validation using stored model
+   * Dynamic validation using stored model with optional collection
    */
   public async validateDynamic<T>(
     data: T,
-    modelName: string
+    modelName: string,
+    version?: number,
+    collection?: string
   ): Promise<PerfectValidator.ValidationResponse<T>> {
     if (!this.storage) {
       throw new Error('Storage is required for dynamic validation');
     }
 
     try {
-      const serializedModel: string | null = await this.storage.getModel(
-        modelName
-      );
+      let serializedModel: string | null;
+
+      if (version !== undefined) {
+        const modelVersion = await this.storage.getModelVersion(
+          modelName,
+          version,
+          collection
+        );
+        if (!modelVersion) {
+          throw new Error(`Model ${modelName} version ${version} not found`);
+        }
+        serializedModel = modelVersion.model;
+      } else {
+        const latestVersion = await this.storage.getLatestModelVersion(
+          modelName,
+          collection
+        );
+        if (!latestVersion) {
+          throw new Error(`Model ${modelName} not found`);
+        }
+        serializedModel = latestVersion.model;
+      }
+
       if (!serializedModel) {
         throw new Error(`Model ${modelName} not found`);
       }
+
       const model: PerfectValidator.ValidationModel = deserializeValidationModel(
         serializedModel
       );
@@ -98,38 +121,50 @@ export class PV {
   }
 
   /**
-   * Store model with validation
+   * Store model with validation and optional collection
    */
   public async storeModel(
     modelName: string,
-    model: PerfectValidator.ValidationModel
+    model: PerfectValidator.ValidationModel,
+    version?: number,
+    collection?: string
   ): Promise<PerfectValidator.ModelValidationResponse> {
     try {
       if (!this.storage) {
         throw new Error('Storage is required for model storage');
       }
-      // 1. Validate model structure
-      const modelValidation: PerfectValidator.ModelValidationResponse = this.validateModel(
-        model
-      );
 
+      // Validate and store model with optional collection
+      const modelValidation = this.validateModel(model);
       if (!modelValidation.isValid) {
         throw new Error(
-          `Model validation failed: ${modelValidation.errors?.join(', ') ||
-            'Unknown error'}`
+          `Model validation failed: ${modelValidation.errors?.join(', ')}`
         );
       }
 
-      // 2. Serialize with safety checks
-      const serialized: string = await this.serializeModelSafely(model);
+      const serialized = await this.serializeModelSafely(model);
+      const deserialized = await this.deserializeAndValidate(serialized);
 
-      // 3. Test deserialization
-      const deserialized: PerfectValidator.ValidationModel = await this.deserializeAndValidate(
-        serialized
-      );
-
-      // 4. Store model (overwrite existing)
-      await this.storage.updateModel(modelName, deserialized);
+      if (version !== undefined) {
+        await this.storage.storeModelVersion(
+          modelName,
+          serialized,
+          version,
+          collection
+        );
+      } else {
+        const latestVersion = await this.storage.getLatestModelVersion(
+          modelName,
+          collection
+        );
+        const newVersion = latestVersion ? latestVersion.version + 1 : 1;
+        await this.storage.storeModelVersion(
+          modelName,
+          serialized,
+          newVersion,
+          collection
+        );
+      }
 
       return { isValid: true, errors: null };
     } catch (error) {
@@ -226,6 +261,59 @@ export class PV {
         );
       }
       throw new Error('Failed to get validation type params: Unknown error');
+    }
+  }
+
+  // Add new utility methods for version management
+  public async getLatestModelVersion(
+    modelName: string,
+    collection?: string
+  ): Promise<PerfectValidator.ValidationModel | null> {
+    if (!this.storage) {
+      throw new Error('Storage is required');
+    }
+    const latestVersion = await this.storage.getLatestModelVersion(
+      modelName,
+      collection
+    );
+    if (!latestVersion) {
+      throw new Error(`Model ${modelName} not found`);
+    }
+    return deserializeValidationModel(latestVersion.model);
+  }
+
+  /**
+   * Get model of a specific version
+   * @param modelName Name of the model
+   * @param version Version number of the model
+   * @returns The model version or null if not found
+   */
+  public async getModelVersion(
+    modelName: string,
+    version: number,
+    collection?: string
+  ): Promise<PerfectValidator.ValidationModel | null> {
+    if (!this.storage) {
+      throw new Error('Storage is required');
+    }
+
+    try {
+      const modelVersion: PerfectValidator.ModelVersion | null = await this.storage.getModelVersion(
+        modelName,
+        version,
+        collection
+      );
+
+      if (!modelVersion) {
+        throw new Error(`Model ${modelName} version ${version} not found`);
+      }
+
+      return deserializeValidationModel(modelVersion.model);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Failed to get model version: ${error.message}`);
+      }
+      throw new Error('Failed to get model version: Unknown error');
     }
   }
 }
