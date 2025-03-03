@@ -1101,6 +1101,9 @@ describe('Model Version Integration Tests', () => {
     const storage = new MongoStorage(db);
     pv = new PV(storage);
   });
+  afterAll(async () => {
+    await client.close();
+  });
 
   // afterAll(async () => {
   //   // Cleanup
