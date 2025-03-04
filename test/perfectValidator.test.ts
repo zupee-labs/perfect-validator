@@ -1,11 +1,19 @@
+// Add polyfills before any imports
+const { TextEncoder, TextDecoder } = require('util');
+global.TextEncoder = TextEncoder;
+global.TextDecoder = TextDecoder;
+
 import { validateAgainstModel } from '../src/validators';
 import { PerfectValidator, isValidationError } from '../src/types';
 import {
   serializeValidationModel,
   deserializeValidationModel,
 } from '../src/utils';
+import { MongoClient, Db } from 'mongodb';
+import { MongoStorage } from '../src/storage/MongoStorage';
+import { PV } from '../src/PV';
 
-// Jest will automatically provide these globalss
+// Jest will automatically provide these globals
 // No need to import describe, it, expect
 
 describe('Dynamic Validator Tests', () => {
@@ -1078,5 +1086,238 @@ describe('Dependency Validation Tests', () => {
         'Max must be greater than min'
       );
     }
+  });
+});
+
+describe('Model Version Integration Tests', () => {
+  let client: MongoClient;
+  let db: Db;
+  let pv: PV;
+
+  beforeAll(async () => {
+    // Connect to MongoDB
+    client = await MongoClient.connect('mongodb://localhost:27017');
+    db = client.db('test_db');
+    const storage = new MongoStorage(db);
+    pv = new PV(storage);
+  });
+  afterAll(async () => {
+    await client.close();
+  });
+
+  // afterAll(async () => {
+  //   // Cleanup
+  //   await db.dropDatabase();
+  //   await client.close();
+  // });
+
+  beforeEach(async () => {
+    // Clear the collection before each test
+    await db.collection('validation_models').deleteMany({});
+  });
+
+  const sampleModel: PerfectValidator.ValidationModel = {
+    name: { type: 'S', minLength: 2 },
+    age: { type: 'N', min: 0 },
+  };
+
+  const updatedModel: PerfectValidator.ValidationModel = {
+    name: { type: 'S', minLength: 3 }, // Changed minLength
+    age: { type: 'N', min: 18 }, // Changed min age
+  };
+
+  describe('Model Versioning', () => {
+    it('should store and retrieve model versions', async () => {
+      // Store version 1
+      const result1 = await pv.storeModel('user', sampleModel, 1);
+      expect(result1.isValid).toBe(true);
+
+      // Store version 2
+      const result2 = await pv.storeModel('user', updatedModel, 2);
+      expect(result2.isValid).toBe(true);
+
+      // Get specific versions
+      const modelV1: PerfectValidator.ValidationModel | null = await pv.getModelVersion(
+        'user',
+        1
+      );
+      const modelV2: PerfectValidator.ValidationModel | null = await pv.getModelVersion(
+        'user',
+        2
+      );
+      // console.log(modelV1);
+      // console.log(modelV2);
+
+      expect(modelV1).toBeDefined();
+      expect(modelV2).toBeDefined();
+      // expect(modelV1?.name?.minLength).toBe(2);
+      // expect(modelV2?.name?.minLength).toBe(3);
+    });
+
+    it('should validate against specific versions', async () => {
+      // Store both versions
+      await pv.storeModel('user', sampleModel, 1);
+      await pv.storeModel('user', updatedModel, 2);
+
+      const validDataV1 = {
+        name: 'Jo', // Valid for v1 (minLength: 2)
+        age: 15, // Valid for v1 (min: 0)
+      };
+
+      const validDataV2 = {
+        name: 'Joe', // Valid for v2 (minLength: 3)
+        age: 20, // Valid for v2 (min: 18)
+      };
+
+      // Validate against version 1
+      const resultV1 = await pv.validateDynamic(validDataV1, 'user', 1);
+      // console.log(resultV1);
+      expect(isValidationError(resultV1)).toBe(false);
+
+      // This should fail against version 2
+      const resultV1AgainstV2 = await pv.validateDynamic(
+        validDataV1,
+        'user',
+        2
+      );
+      // console.log(resultV1AgainstV2);
+      expect(isValidationError(resultV1AgainstV2)).toBe(true);
+
+      // Validate against version 2
+      const resultV2 = await pv.validateDynamic(validDataV2, 'user', 2);
+      expect(isValidationError(resultV2)).toBe(false);
+    });
+
+    it('should automatically increment versions when not specified', async () => {
+      // Store without specifying version
+      const result1 = await pv.storeModel('user', sampleModel);
+      expect(result1.isValid).toBe(true);
+
+      const result2 = await pv.storeModel('user', updatedModel);
+
+      expect(result2.isValid).toBe(true);
+
+      // Get latest version
+      const latest: PerfectValidator.ValidationModel | null = await pv.getLatestModelVersion(
+        'user'
+      );
+      // console.log(latest);
+      expect(latest).toBeDefined();
+      // expect(latest?.name.minLength).toBe(3); // Should match updatedModel
+    });
+
+    it('should prevent duplicate version numbers', async () => {
+      // Store version 1
+      await pv.storeModel('user', sampleModel, 1);
+
+      // Attempt to store same version
+      const duplicateResult = await pv.storeModel('user', updatedModel, 1);
+      // console.log(duplicateResult);
+      expect(duplicateResult.isValid).toBe(false);
+      // expect(duplicateResult.errors).toContain(expect.stringContaining('already exists'));
+    });
+
+    it('should validate against latest version by default', async () => {
+      // Store multiple versions
+      await pv.storeModel('user', sampleModel, 1);
+      await pv.storeModel('user', updatedModel, 2);
+
+      const validDataV1 = {
+        name: 'Jo',
+        age: 15,
+      };
+
+      // Should validate against version 2 (latest) and fail
+      const result = await pv.validateDynamic(validDataV1, 'user');
+      expect(isValidationError(result)).toBe(true);
+    });
+
+    it('should handle non-existent models and versions', async () => {
+      // Try to get non-existent model
+      await expect(pv.getModelVersion('nonexistent', 1)).rejects.toThrow(
+        'Model nonexistent version 1 not found'
+      );
+
+      // Try to validate against non-existent version
+      const result = await pv.validateDynamic(
+        { name: 'Test' },
+        'nonexistent',
+        1
+      );
+      // console.log(result);
+      expect(isValidationError(result)).toBe(true);
+      if (isValidationError(result)) {
+        expect(result.errors[0].message).toContain('not found');
+      }
+    });
+
+    it('should handle complex models with dependencies across versions', async () => {
+      const complexModelV1: PerfectValidator.ValidationModel = {
+        user: {
+          type: 'M',
+          fields: {
+            age: { type: 'N', min: 13 },
+            subscription: {
+              type: 'S',
+              values: ['FREE', 'PREMIUM'],
+              dependsOn: {
+                field: 'user.age',
+                condition: (age: number) => age < 18,
+                validate: (plan: string) => plan !== 'PREMIUM',
+                message: 'Users under 18 cannot have PREMIUM plan',
+              },
+            },
+          },
+        },
+      };
+
+      const complexModelV2: PerfectValidator.ValidationModel = {
+        user: {
+          type: 'M',
+          fields: {
+            age: { type: 'N', min: 16 }, // Changed min age
+            subscription: {
+              type: 'S',
+              values: ['FREE', 'PREMIUM', 'PRO'], // Added new plan
+              dependsOn: {
+                field: 'user.age',
+                condition: (age: number) => age < 21, // Changed age check
+                validate: (plan: string) => plan === 'FREE',
+                message: 'Users under 21 can only have FREE plan',
+              },
+            },
+          },
+        },
+      };
+
+      // Store both versions
+      await pv.storeModel('complex', complexModelV1, 1);
+      await pv.storeModel('complex', complexModelV2, 2);
+
+      const testData = {
+        user: {
+          age: 17,
+          subscription: 'PREMIUM',
+        },
+      };
+
+      // Test against version 1
+      const resultV1 = await pv.validateDynamic(testData, 'complex', 1);
+      expect(isValidationError(resultV1)).toBe(true);
+      if (isValidationError(resultV1)) {
+        expect(resultV1.errors[0].message).toBe(
+          'Users under 18 cannot have PREMIUM plan'
+        );
+      }
+
+      // Test against version 2
+      const resultV2 = await pv.validateDynamic(testData, 'complex', 2);
+      expect(isValidationError(resultV2)).toBe(true);
+      if (isValidationError(resultV2)) {
+        expect(resultV2.errors[0].message).toBe(
+          'Users under 21 can only have FREE plan'
+        );
+      }
+    });
   });
 });

@@ -260,10 +260,36 @@ export function validateAgainstModel<T>(
     const dataWithDefaults = applyDefaults(data, model);
 
     function validateValue(value: any, rule: PerfectValidator.ValidationRule | string, path: string): void {
-
         // Handle undefined for optional fields
         if (value === undefined) {
+            // Check if there's a dependency that might make this required
+            if (typeof rule === 'object' && rule.dependsOn) {
+                const deps = Array.isArray(rule.dependsOn) ? rule.dependsOn : [rule.dependsOn];
+                
+                for (const dep of deps) {
+                    const depPath = dep.field.includes('.') 
+                        ? dep.field  
+                        : parentPath ? `${parentPath}.${dep.field}` : dep.field;
+                    
+                    const depValue = getNestedValue(dataWithDefaults, depPath);
+                    
+                    if (dep.condition(depValue)) {
+                        // Check if the dependency explicitly marks this as required
+                        // We'll need to add an 'isRequired' property to ValidationDependency
+                        if (dep.isRequired) {
+                            errors.push({
+                                field: path,
+                                message: dep.message || 'Field is required based on dependencies'
+                            });
+                            return;
+                        }
+                    }
+                }
+            }
+            
+            // If we get here and the field is optional, we can skip further validation
             if (typeof rule === 'object' && rule.optional) return;
+            
             errors.push({
                 field: path,
                 message: 'Field is required'

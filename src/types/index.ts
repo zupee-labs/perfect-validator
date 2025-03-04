@@ -40,6 +40,7 @@ export namespace PerfectValidator {
     validate: (value: any, dependentValue: any, fullData?: any) => boolean;
     message: string;
     optional?: boolean;
+    isRequired?: boolean;
   }
   export interface IValidationTypeParams {
     type: string;
@@ -110,11 +111,20 @@ export namespace PerfectValidator {
 
   // Storage interfaces
   export interface IModelStorage {
-    storeModelVersion(modelName: string, model: string): Promise<void>;
-    getLatestModelVersion(modelName: string): Promise<ModelVersion | null>;
+    storeModelVersion(
+      modelName: string,
+      model: string,
+      version: number,
+      collection?: string
+    ): Promise<void>;
+    getLatestModelVersion(
+      modelName: string,
+      collection?: string
+    ): Promise<ModelVersion | null>;
     getModelVersion(
       modelName: string,
-      version: number
+      version: number,
+      collection?: string
     ): Promise<ModelVersion | null>;
     listModelVersions(modelName: string): Promise<ModelVersion[]>;
     insertModel(modelName: string, model: ValidationModel): Promise<void>;

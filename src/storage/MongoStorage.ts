@@ -3,68 +3,127 @@ import { PerfectValidator } from '../types';
 import { serializeValidationModel } from '../utils';
 
 export class MongoStorage implements PerfectValidator.IModelStorage {
-  private collection: Collection;
+  private db: Db;
+  private defaultCollection = 'validation_models';
 
   constructor(db: Db) {
-    // Collection to store validation models
-    this.collection = db.collection('validation_models');
+    this.db = db;
+  }
+
+  private getCollection(collection?: string) {
+    return this.db.collection(collection || this.defaultCollection);
   }
 
   async getModel(modelName: string): Promise<string | null> {
-    const doc = await this.collection.findOne({ name: modelName });
+    const doc = await this.getCollection().findOne({
+      name: modelName,
+      isLatest: true,
+    });
     return doc ? doc.model : null;
   }
 
+  async storeModelVersion(
+    modelName: string,
+    serializedModel: string,
+    version: number,
+    collection?: string
+  ): Promise<void> {
+    const col = this.getCollection(collection);
+
+    // Check if version exists
+    const existingVersion = await col.findOne({
+      name: modelName,
+      version: version,
+    });
+
+    if (existingVersion) {
+      throw new Error(
+        `Version ${version} already exists for model ${modelName}`
+      );
+    }
+
+    // Update and insert as before, but using the specified collection
+    await col.updateMany({ name: modelName }, { $set: { isLatest: false } });
+
+    await col.insertOne({
+      name: modelName,
+      version: version,
+      model: serializedModel,
+      createdAt: new Date(),
+      isLatest: true,
+    });
+  }
+
+  async getModelVersion(
+    modelName: string,
+    version: number
+  ): Promise<PerfectValidator.ModelVersion | null> {
+    const doc = await this.getCollection().findOne({
+      name: modelName,
+      version: version,
+    });
+
+    if (!doc) return null;
+
+    return {
+      version: doc.version,
+      model: doc.model,
+      createdAt: doc.createdAt,
+    };
+  }
+
+  async getLatestModelVersion(
+    modelName: string
+  ): Promise<PerfectValidator.ModelVersion | null> {
+    const doc = await this.getCollection().findOne({
+      name: modelName,
+      isLatest: true,
+    });
+
+    if (!doc) return null;
+
+    return {
+      version: doc.version,
+      model: doc.model,
+      createdAt: doc.createdAt,
+    };
+  }
+
+  async listModelVersions(
+    modelName: string
+  ): Promise<PerfectValidator.ModelVersion[]> {
+    const docs = await this.getCollection()
+      .find({ name: modelName })
+      .sort({ version: -1 })
+      .toArray();
+
+    return docs.map(doc => ({
+      version: doc.version,
+      model: doc.model,
+      createdAt: doc.createdAt,
+    }));
+  }
+
+  // These methods are now just aliases for versioned operations
   async insertModel(
     modelName: string,
     model: PerfectValidator.ValidationModel
   ): Promise<void> {
-    // Store the raw serialized model without parsing
-    const serializedModel = JSON.stringify(model);
-    await this.collection.insertOne({
-      name: modelName,
-      model: serializedModel, // Store raw string
-      createdAt: new Date(),
-    });
+    const serializedModel = serializeValidationModel(model);
+    await this.storeModelVersion(modelName, serializedModel, 1);
   }
 
   async updateModel(
     modelName: string,
     model: PerfectValidator.ValidationModel
   ): Promise<void> {
-    // Always serialize before storing
-
-    const serializedModel: string = serializeValidationModel(model);
-    await this.collection.updateOne(
-      { name: modelName },
-      {
-        $set: {
-          model: serializedModel,
-          updatedAt: new Date(),
-        },
-      },
-      { upsert: true }
-    );
+    const serializedModel = serializeValidationModel(model);
+    const latestVersion = await this.getLatestModelVersion(modelName);
+    const newVersion = latestVersion ? latestVersion.version + 1 : 1;
+    await this.storeModelVersion(modelName, serializedModel, newVersion);
   }
 
   async deleteModel(modelName: string): Promise<void> {
-    await this.collection.deleteOne({ name: modelName });
-  }
-
-  // Implementing required interface methods but they're not used anymore
-  async storeModelVersion(): Promise<void> {
-    throw new Error('Method not supported - versioning is disabled');
-  }
-
-  async getLatestModelVersion(): Promise<PerfectValidator.ModelVersion | null> {
-    throw new Error('Method not supported - versioning is disabled');
-  }
-
-  async getModelVersion(): Promise<PerfectValidator.ModelVersion | null> {
-    throw new Error('Method not supported - versioning is disabled');
-  }
-
-  async listModelVersions(): Promise<PerfectValidator.ModelVersion[]> {
-    throw new Error('Method not supported - versioning is disabled');
+    await this.getCollection().deleteMany({ name: modelName });
   }
 }
