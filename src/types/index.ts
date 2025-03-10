@@ -105,7 +105,7 @@ export namespace PerfectValidator {
 
   export interface ModelVersion {
     version: number;
-    model: ValidationModel;
+    model: string;
     createdAt: Date;
   }
 
