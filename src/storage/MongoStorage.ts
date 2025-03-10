@@ -1,4 +1,4 @@
-import { Collection, Db } from 'mongodb';
+import {  Db } from 'mongodb';
 import { PerfectValidator } from '../types';
 import { serializeValidationModel } from '../utils';
 
@@ -56,9 +56,10 @@ export class MongoStorage implements PerfectValidator.IModelStorage {
 
   async getModelVersion(
     modelName: string,
-    version: number
+    version: number,
+    collection?: string
   ): Promise<PerfectValidator.ModelVersion | null> {
-    const doc = await this.getCollection().findOne({
+    const doc = await this.getCollection(collection).findOne({
       name: modelName,
       version: version,
     });
@@ -73,9 +74,10 @@ export class MongoStorage implements PerfectValidator.IModelStorage {
   }
 
   async getLatestModelVersion(
-    modelName: string
+    modelName: string,
+    collection?: string
   ): Promise<PerfectValidator.ModelVersion | null> {
-    const doc = await this.getCollection().findOne({
+    const doc = await this.getCollection(collection).findOne({
       name: modelName,
       isLatest: true,
     });
@@ -90,9 +92,10 @@ export class MongoStorage implements PerfectValidator.IModelStorage {
   }
 
   async listModelVersions(
-    modelName: string
+    modelName: string,
+    collection?: string
   ): Promise<PerfectValidator.ModelVersion[]> {
-    const docs = await this.getCollection()
+    const docs = await this.getCollection(collection)
       .find({ name: modelName })
       .sort({ version: -1 })
       .toArray();
