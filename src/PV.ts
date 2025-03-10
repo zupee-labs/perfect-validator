@@ -316,4 +316,28 @@ export class PV {
       throw new Error('Failed to get model version: Unknown error');
     }
   }
+
+  /**
+   * Get list of all versions for a model
+   * @param modelName Name of the model
+   * @param collection Optional collection name
+   * @returns Array of version numbers in descending order (newest first)
+   */
+  public async listModelVersions(
+    modelName: string,
+    collection?: string
+  ): Promise<number[]> {
+    if (!this.storage) {
+      throw new Error('Storage is required');
+    }
+
+    try {
+      return await this.storage.listModelVersions(modelName, collection);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Failed to list model versions: ${error.message}`);
+      }
+      throw new Error('Failed to list model versions: Unknown error');
+    }
+  }
 }

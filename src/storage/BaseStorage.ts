@@ -9,9 +9,7 @@ export abstract class BaseStorage implements PerfectValidator.IModelStorage {
     modelName: string,
     version: number
   ): Promise<PerfectValidator.ModelVersion | null>;
-  abstract listModelVersions(
-    modelName: string
-  ): Promise<PerfectValidator.ModelVersion[]>;
+  abstract listModelVersions(modelName: string): Promise<number[]>;
   abstract insertModel(
     modelName: string,
     model: PerfectValidator.ValidationModel

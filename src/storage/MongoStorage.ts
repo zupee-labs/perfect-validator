@@ -1,4 +1,4 @@
-import {  Db } from 'mongodb';
+import { Db } from 'mongodb';
 import { PerfectValidator } from '../types';
 import { serializeValidationModel } from '../utils';
 
@@ -64,7 +64,7 @@ export class MongoStorage implements PerfectValidator.IModelStorage {
       version: version,
     });
 
-    if (!doc) return null;
+    if (!doc || !doc.model || Object.keys(doc.model).length === 0) return null;
 
     return {
       version: doc.version,
@@ -82,7 +82,7 @@ export class MongoStorage implements PerfectValidator.IModelStorage {
       isLatest: true,
     });
 
-    if (!doc) return null;
+    if (!doc || !doc.model || Object.keys(doc.model).length === 0) return null;
 
     return {
       version: doc.version,
@@ -94,17 +94,20 @@ export class MongoStorage implements PerfectValidator.IModelStorage {
   async listModelVersions(
     modelName: string,
     collection?: string
-  ): Promise<PerfectValidator.ModelVersion[]> {
-    const docs = await this.getCollection(collection)
-      .find({ name: modelName })
-      .sort({ version: -1 })
-      .toArray();
+  ): Promise<number[]> {
+    // Only project the needed fields (version and createdAt)
+    const cursor = this.getCollection(collection)
+      .find({ name: modelName }, { projection: { version: 1, createdAt: 1 } })
+      .sort({ version: -1 });
 
-    return docs.map(doc => ({
-      version: doc.version,
-      model: doc.model,
-      createdAt: doc.createdAt,
-    }));
+    const versions: number[] = [];
+
+    // Process documents one by one using cursor, not loading model data
+    for await (const doc of cursor) {
+      versions.push(doc.version);
+    }
+
+    return versions;
   }
 
   // These methods are now just aliases for versioned operations
