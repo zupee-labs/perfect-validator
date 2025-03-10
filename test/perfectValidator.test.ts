@@ -13,6 +13,8 @@ import { MongoClient, Db } from 'mongodb';
 import { MongoStorage } from '../src/storage/MongoStorage';
 import { PV } from '../src/PV';
 
+
+
 // Jest will automatically provide these globals
 // No need to import describe, it, expect
 
@@ -801,6 +803,138 @@ describe('Dynamic Validator Tests', () => {
     test.each(invalidPhones)('should reject invalid phone: %s', phone => {
       const result = validateAgainstModel({ phone }, phoneModel);
       expect(isValidationError(result)).toBe(true);
+    });
+  });
+  describe('Number Validation', () => {
+    it('should validate decimal numbers', () => {
+      const model: PerfectValidator.ValidationModel = {
+        basicDecimal: {
+          type: 'N',
+          decimal: true,
+        },
+        twoDecimalPlaces: {
+          type: 'N',
+          decimal: true,
+          decimals: 2,
+        },
+        decimalRange: {
+          type: 'N',
+          decimal: true,
+          min: 0.5,
+          max: 10.5,
+        },
+      };
+
+      // Valid data
+      const validData = {
+        basicDecimal: 10.5,
+        twoDecimalPlaces: 42.25,
+        decimalRange: 5.75,
+      };
+
+      const validResult = validateAgainstModel(validData, model);
+      expect(isValidationError(validResult)).toBe(false);
+
+      // Invalid - not a decimal
+      const notDecimalData = {
+        basicDecimal: 10, // Should be a decimal
+        twoDecimalPlaces: 42.25,
+        decimalRange: 5.75,
+      };
+
+      const notDecimalResult = validateAgainstModel(notDecimalData, model);
+      expect(isValidationError(notDecimalResult)).toBe(true);
+      if (isValidationError(notDecimalResult)) {
+        expect(notDecimalResult.errors[0].message).toContain(
+          'Value must be a decimal number'
+        );
+      }
+
+      // Invalid - wrong number of decimal places
+      const wrongDecimalPlacesData = {
+        basicDecimal: 10.5,
+        twoDecimalPlaces: 42.125, // Should have exactly 2 decimal places
+        decimalRange: 5.75,
+      };
+
+      const wrongDecimalPlacesResult = validateAgainstModel(
+        wrongDecimalPlacesData,
+        model
+      );
+      expect(isValidationError(wrongDecimalPlacesResult)).toBe(true);
+      if (isValidationError(wrongDecimalPlacesResult)) {
+        expect(wrongDecimalPlacesResult.errors[0].message).toContain(
+          'Value must have exactly 2 decimal places'
+        );
+      }
+
+      // Invalid - outside of range
+      const outOfRangeData = {
+        basicDecimal: 10.5,
+        twoDecimalPlaces: 42.25,
+        decimalRange: 11.75, // Above max of 10.5
+      };
+
+      const outOfRangeResult = validateAgainstModel(outOfRangeData, model);
+      expect(isValidationError(outOfRangeResult)).toBe(true);
+      if (isValidationError(outOfRangeResult)) {
+        expect(outOfRangeResult.errors[0].message).toContain(
+          'Value must be <='
+        );
+      }
+    });
+
+    it('should validate mixed integer and decimal requirements', () => {
+      const model: PerfectValidator.ValidationModel = {
+        integerValue: {
+          type: 'N',
+          integer: true,
+        },
+        decimalValue: {
+          type: 'N',
+          decimal: true,
+        },
+      };
+
+      // Valid data
+      const validData = {
+        integerValue: 42,
+        decimalValue: 42.5,
+      };
+      const validResult = validateAgainstModel(validData, model);
+      expect(isValidationError(validResult)).toBe(false);
+
+      // Invalid integer (should be integer)
+      const invalidIntegerData = {
+        integerValue: 42.5,
+        decimalValue: 42.5,
+      };
+      const invalidIntegerResult = validateAgainstModel(
+        invalidIntegerData,
+        model
+      );
+      expect(isValidationError(invalidIntegerResult)).toBe(true);
+      if (isValidationError(invalidIntegerResult)) {
+        expect(invalidIntegerResult.errors[0].message).toContain(
+          'must be an integer'
+        );
+      }
+
+      // Invalid decimal (should be decimal)
+      const invalidDecimalData = {
+        integerValue: 42,
+        decimalValue: 42,
+      };
+      const invalidDecimalResult = validateAgainstModel(
+        invalidDecimalData,
+        model
+      );
+      expect(isValidationError(invalidDecimalResult)).toBe(true);
+      if (isValidationError(invalidDecimalResult)) {
+        expect(invalidDecimalResult.errors[0].message).toContain(
+          'must be a decimal number'
+        );
+      }
     });
   });
 });

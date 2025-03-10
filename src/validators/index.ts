@@ -94,11 +94,7 @@ function validateType(value: any, type: PerfectValidator.ValidationType, rule?: 
         case 'S':
             return typeof value === 'string';
         case 'N':
-            if (typeof value !== 'number' || isNaN(value)) return false;
-            if (rule?.decimal) {
-                const decimalPlaces = (value.toString().split('.')[1] || '').length;
-                if (rule.decimals !== undefined && decimalPlaces !== rule.decimals) return false;
-            }
+            if (typeof value !== 'number' || isNaN(value)) return false;            
             return true;
         case 'B':
             return typeof value === 'boolean';
@@ -354,6 +350,25 @@ export function validateAgainstModel<T>(
                     field: path,
                     message: 'Value must be an integer'
                 });
+            }
+            
+            // Add specific decimal validation error messages
+            if (rule.decimal) {
+                const hasDecimal = value.toString().includes('.');
+                if (!hasDecimal) {
+                    errors.push({
+                        field: path,
+                        message: 'Value must be a decimal number'
+                    });
+                } else if (rule.decimals !== undefined) {
+                    const decimalPlaces = (value.toString().split('.')[1] || '').length;
+                    if (decimalPlaces !== rule.decimals) {
+                        errors.push({
+                            field: path,
+                            message: `Value must have exactly ${rule.decimals} decimal places`
+                        });
+                    }
+                }
             }
         }
 
