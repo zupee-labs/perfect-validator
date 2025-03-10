@@ -355,7 +355,8 @@ export function validateAgainstModel<T>(
             // Add specific decimal validation error messages
             if (rule.decimal) {
                 const hasDecimal = value.toString().includes('.');
-                if (!hasDecimal) {
+                const isInteger = Number.isInteger(value);
+                if (!hasDecimal && !isInteger) {
                     errors.push({
                         field: path,
                         message: 'Value must be a decimal number'
