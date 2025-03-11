@@ -1448,5 +1448,31 @@ describe('Model Version Integration Tests', () => {
         );
       }
     });
+
+    it('should list all model versions in descending order', async () => {
+      // Store multiple versions
+      await pv.storeModel('user', sampleModel, 3);
+      await pv.storeModel('user', sampleModel, 1);
+      await pv.storeModel('user', updatedModel, 5);
+      await pv.storeModel('user', updatedModel, 2);
+      await pv.storeModel('user', updatedModel, 4);
+
+      // Get list of versions
+      const versions = await pv.listModelVersions('user');
+
+      console.log(versions);
+      
+      // Should return all versions in descending order
+      expect(versions).toEqual([5, 4, 3, 2, 1]);
+    });
+
+    it('should return empty array for non-existent models', async () => {
+      // Try to get versions for non-existent model
+      const versions = await pv.listModelVersions('nonexistent');
+      
+      // Should return empty array
+      expect(versions).toEqual([]);
+      expect(versions.length).toBe(0);
+    });
   });
 });
