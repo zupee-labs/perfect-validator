@@ -95,18 +95,18 @@ export class MongoStorage implements PerfectValidator.IModelStorage {
     modelName: string,
     collection?: string
   ): Promise<number[]> {
-    // Only project the needed fields (version and createdAt)
     const cursor = this.getCollection(collection)
-      .find({ name: modelName }, { projection: { version: 1, createdAt: 1 } })
+      .find({ name: modelName }, { projection: { version: 1 } })
       .sort({ version: -1 });
 
     const versions: number[] = [];
-
-    // Process documents one by one using cursor, not loading model data
-    for await (const doc of cursor) {
+    
+    // Use cursor.hasNext() for explicit cursor navigation
+    while (await cursor.hasNext()) {
+      const doc = await cursor.next();
       versions.push(doc.version);
     }
-
+    
     return versions;
   }
 
