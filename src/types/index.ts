@@ -105,7 +105,7 @@ export namespace PerfectValidator {
 
   export interface ModelVersion {
     version: number;
-    model: string; // serialized model
+    model: string;
     createdAt: Date;
   }
 
@@ -126,10 +126,21 @@ export namespace PerfectValidator {
       version: number,
       collection?: string
     ): Promise<ModelVersion | null>;
-    listModelVersions(modelName: string): Promise<ModelVersion[]>;
-    insertModel(modelName: string, model: ValidationModel): Promise<void>;
-    updateModel(modelName: string, model: ValidationModel): Promise<void>;
-    getModel(modelName: string): Promise<string | null>;
+    listModelVersions(
+      modelName: string,
+      collection?: string
+    ): Promise<number[]>;
+    insertModel(
+      modelName: string,
+      model: ValidationModel,
+      collection?: string
+    ): Promise<void>;
+    updateModel(
+      modelName: string,
+      model: ValidationModel,
+      collection?: string
+    ): Promise<void>;
+    getModel(modelName: string, collection?: string): Promise<string | null>;
   }
 
   export interface IModelCache {
