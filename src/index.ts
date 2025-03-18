@@ -14,6 +14,13 @@ export { MongoStorage } from './storage/MongoStorage';
 // Export validators
 export { validateAgainstModel, validateDataModel } from './validators';
 
+// EXPOSE SERIALIZATION FUNCTIONS
+export { 
+  serializeValidationModel, 
+  deserializeValidationModel,
+  getValidationTypeParams 
+} from './utils';
+
 // Export default instance creator
 export const createPV = (storage: PerfectValidator.IModelStorage): PV => {
   return PV.getInstance(storage);
