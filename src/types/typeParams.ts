@@ -57,7 +57,7 @@ export const ValidationTypeParams: Record<
       {
         name:'decimal',
         type:'boolean',
-        description:'Whether the number can be a decimal',
+        description:'can be decimal or an integer',
       },
       {
         name: 'optional',
