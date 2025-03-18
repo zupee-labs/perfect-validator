@@ -14,7 +14,7 @@ export { MongoStorage } from './storage/MongoStorage';
 // Export validators
 export { validateAgainstModel, validateDataModel } from './validators';
 
-// EXPOSE SERIALIZATION FUNCTIONS
+// Export Serialization/Deserialization Functions
 export { 
   serializeValidationModel, 
   deserializeValidationModel,
