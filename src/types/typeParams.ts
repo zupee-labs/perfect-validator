@@ -55,6 +55,11 @@ export const ValidationTypeParams: Record<
         description: 'Whether the number must be an integer',
       },
       {
+        name:'decimal',
+        type:'boolean',
+        description:'can be decimal or an integer',
+      },
+      {
         name: 'optional',
         type: 'boolean',
         description: 'Whether the field is optional',
@@ -106,6 +111,11 @@ export const ValidationTypeParams: Record<
         name: 'maxLength',
         type: 'number',
         description: 'Maximum array length',
+      },
+      {
+        name: 'values',
+        type: 'any[]',
+        description: 'Array of allowed values',
       },
       {
         name: 'optional',
