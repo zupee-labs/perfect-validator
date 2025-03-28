@@ -19,15 +19,25 @@ export class MongoStorage implements PerfectValidator.IModelStorage {
    * Create necessary indexes for optimal query performance
    */
   private async createIndexes(): Promise<void> {
-    // Create a compound index on name and version
-    // This optimizes queries that filter by name and sort by version
-    await this.getCollection().createIndex(
-      { name: 1, version: -1 },
-      { background: true }
-    );
-
-    // Create a simple index on name field for queries that only filter by name
-    await this.getCollection().createIndex({ name: 1 }, { background: true });
+    try {
+      // Create a compound index - safe even if it already exists
+      await this.getCollection().createIndex(
+        { name: 1, version: -1 },
+        { background: true }
+      );
+      
+      // Create a simple index - safe even if it already exists
+      await this.getCollection().createIndex(
+        { name: 1 },
+        { background: true }
+      );
+      
+      console.log('Indexes created or already exist');
+    } catch (error) {
+      // Handle specific index errors if needed
+      console.error('Error creating indexes:', error);
+      // But don't rethrow - we want app to continue if index creation fails
+    }
   }
 
   private getCollection(collection?: string) {
