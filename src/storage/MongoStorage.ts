@@ -8,32 +8,9 @@ export class MongoStorage implements PerfectValidator.IModelStorage {
 
   constructor(db: Db) {
     this.db = db;
-
-    // Create indexes for better query performance
-    this.createIndexes().catch(err => {
-      console.error('Failed to create indexes:', err);
-    });
   }
 
-  /**
-   * Create necessary indexes for optimal query performance
-   */
-  private async createIndexes(): Promise<void> {
-
-      // Create a compound index - safe even if it already exists
-      await this.getCollection().createIndex(
-        { name: 1, version: -1 },
-        { background: true }
-      );
-      
-      // Create a simple index - safe even if it already exists
-      await this.getCollection().createIndex(
-        { name: 1 },
-        { background: true }
-      );
-
-  }
-
+  
   private getCollection(collection?: string) {
     return this.db.collection(collection || this.defaultCollection);
   }
