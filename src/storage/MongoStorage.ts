@@ -8,9 +8,33 @@ export class MongoStorage implements PerfectValidator.IModelStorage {
 
   constructor(db: Db) {
     this.db = db;
+    
+    // Check for required indexes instead of creating them
+    this.checkRequiredIndexes();
   }
 
-  
+  /**
+   * Checks if any indexes exist on the collection beyond the default _id index
+   * This allows index creation to be handled externally (e.g., by bash scripts)
+   */
+  private async checkRequiredIndexes(): Promise<void> {
+    try {
+      const collection = this.getCollection();
+
+      const indexInfo = await collection.indexInformation();      
+      // Count indexes - MongoDB always has at least the _id index
+      const indexCount = Object.keys(indexInfo).length;
+      
+      // If only the default _id index exists
+      if (indexCount <= 1) {
+        console.warn('=================================================================');
+        console.warn('WARNING: No custom indexes found on validation_models collection');
+      }
+    } catch (error) {
+      console.error('Failed to check indexes:', error);
+    } 
+  }
+
   private getCollection(collection?: string) {
     return this.db.collection(collection || this.defaultCollection);
   }
