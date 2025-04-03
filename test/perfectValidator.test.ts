@@ -1,4 +1,5 @@
 // Add polyfills before any imports
+
 const { TextEncoder, TextDecoder } = require('util');
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
@@ -743,33 +744,176 @@ describe('Dynamic Validator Tests', () => {
     });
   });
   describe('Date Validation', () => {
+    // Define models for testing date validation
     const dateModel: PerfectValidator.ValidationModel = {
-      date: { type: 'DATE' },
+      eventDate: {
+        type: 'DATE'
+      }
     };
 
-    const validDates = ['2024-03-15', '2000-01-01', '2099-12-31', '2023-11-30'];
+    const optionalDateModel: PerfectValidator.ValidationModel = {
+      eventDate: {
+        type: 'DATE',
+        optional: true
+      }
+    };
 
-    const invalidDates = [
-      '2024-13-01', // Invalid month
-      '2024-00-01', // Invalid month
-      '2024-01-32', // Invalid day
-      '2024-01-00', // Invalid day
-      '1899-12-31', // Year before 1900
-      '2100-01-01', // Year after 2099
-      '2024/03/15', // Wrong format
-      '15-03-2024', // Wrong format
-      '2024-3-15', // Missing leading zero
-      '2024-03-5', // Missing leading zero
-    ];
+    // Test valid date formats
+    it('should validate valid date formats', () => {
+      const validDates = [
+        { eventDate: '2023-01-01' },              // Basic date format
+        { eventDate: '2023-12-31' },              // End of year
+        { eventDate: '2023-02-28' },              // End of month
+        { eventDate: '2024-02-29' },              // Leap year
+        { eventDate: '2023-01-01T00:00:00Z' },    // Date with UTC time
+        { eventDate: '2023-01-01T12:30:45Z' },    // Date with time
+        { eventDate: '2023-01-01T23:59:59Z' },    // End of day
+        { eventDate: '2023-01-01T12:30:45.123Z' },// With milliseconds
+        { eventDate: '2023-01-01T12:30:45+05:30' },// With timezone offset
+        { eventDate: '2023-01-01T12:30:45-08:00' } // Negative timezone offset
+      ];
 
-    test.each(validDates)('should validate correct date: %s', date => {
-      const result = validateAgainstModel({ date }, dateModel);
-      expect(isValidationError(result)).toBe(false);
+      validDates.forEach(data => {
+        const result = validateAgainstModel(data, dateModel);
+        expect(isValidationError(result)).toBe(false);
+        if (!isValidationError(result)) {
+          expect(result.data).toEqual(data);
+        }
+      });
     });
 
-    test.each(invalidDates)('should reject invalid date: %s', date => {
-      const result = validateAgainstModel({ date }, dateModel);
-      expect(isValidationError(result)).toBe(true);
+    // Test invalid date formats
+    it('should reject invalid date formats', () => {
+      const invalidDates = [
+        { eventDate: '01-01-2023' },              // Wrong format (MM-DD-YYYY)
+        { eventDate: '2023/01/01' },              // Wrong separator
+        { eventDate: '2023-13-01' },              // Invalid month
+        { eventDate: '2023-00-01' },              // Zero month
+        { eventDate: '2023-01-32' },              // Invalid day
+        { eventDate: '2023-01-00' },              // Zero day
+        { eventDate: '2023-13-28' },              // Invalid day for month         
+        { eventDate: '2023-1-1' },                // Missing leading zeros
+        { eventDate: '23-01-01' },                // Two-digit year
+        { eventDate: 'January 1, 2023' },         // Text format
+        { eventDate: '2023-01-01 12:30:45' },     // Space instead of T
+        { eventDate: '2023-01-01T25:00:00Z' },    // Invalid hour
+        { eventDate: '2023-01-01T12:60:00Z' },    // Invalid minute
+        { eventDate: '2023-01-01T12:30:60Z' },    // Invalid second
+        { eventDate: 20230101 },                  // Number instead of string
+        { eventDate: true },                      // Boolean instead of string
+        { eventDate: null },                      // Null instead of string
+        { eventDate: {} }                         // Object instead of string
+      ];
+
+      invalidDates.forEach(data => {
+        const result = validateAgainstModel(data, dateModel);
+        console.log(data);
+        console.log(result);
+        expect(isValidationError(result)).toBe(true);
+        if (isValidationError(result)) {
+          expect(result.errors[0].field).toBe('eventDate');
+        }
+      });
+    });
+
+    // Test optional date field
+    it('should handle optional date fields correctly', () => {
+      const testCases = [
+        { eventDate: '2023-01-01' },              // Present and valid
+        { eventDate: '2023-01-01T12:30:45Z' },    // Present with time and valid
+        {}                                         // Not present (optional)
+      ];
+
+      testCases.forEach(data => {
+        const result = validateAgainstModel(data, optionalDateModel);
+        expect(isValidationError(result)).toBe(false);
+      });
+    });
+
+    // Test century boundaries
+    it('should validate dates at century boundaries', () => {
+      const testCases = [
+        { eventDate: '1900-01-01' },              // Start of 20th century (should pass)
+        { eventDate: '2000-01-01' },              // Millennium
+        { eventDate: '2099-12-31' },              // End of 21st century
+        { eventDate: '1899-12-31' },              // 19th century (should fail)
+        { eventDate: '2100-01-01' },              // 22nd century (should fail)
+      ];
+
+      // First 3 should pass
+      for (let i = 0; i < 3; i++) {
+        const result = validateAgainstModel(testCases[i], dateModel);
+        expect(isValidationError(result)).toBe(false);
+      }
+      
+      // Last 2 should fail
+      for (let i = 3; i < 5; i++) {
+        const result = validateAgainstModel(testCases[i], dateModel);
+        expect(isValidationError(result)).toBe(true);
+      }
+    });
+
+    // Test dates in nested objects
+    it('should validate dates in nested objects', () => {
+      const nestedDateModel: PerfectValidator.ValidationModel = {
+        event: {
+          type: 'M',
+          fields: {
+            name: { type: 'S' },
+            scheduledDate: { type: 'DATE' }
+          }
+        }
+      };
+
+      const validData = {
+        event: {
+          name: "Conference",
+          scheduledDate: "2023-06-15T09:00:00Z"
+        }
+      };
+
+      const invalidData = {
+        event: {
+          name: "Conference",
+          scheduledDate: "06/15/2023"
+        }
+      };
+
+      const validResult = validateAgainstModel(validData, nestedDateModel);
+      expect(isValidationError(validResult)).toBe(false);
+
+      const invalidResult = validateAgainstModel(invalidData, nestedDateModel);
+      expect(isValidationError(invalidResult)).toBe(true);
+      if (isValidationError(invalidResult)) {
+        expect(invalidResult.errors[0].field).toBe('event.scheduledDate');
+      }
+    });
+
+    // Test dates in arrays
+    it('should validate dates in arrays', () => {
+      const arrayDateModel: PerfectValidator.ValidationModel = {
+        eventDates: {
+          type: 'L',
+          items: { type: 'DATE' }
+        }
+      };
+
+      const validData = {
+        eventDates: ["2023-01-01", "2023-02-15T12:30:00Z", "2023-12-31"]
+      };
+
+      const invalidData = {
+        eventDates: ["2023-01-01", "invalid-date", "2023-12-31"]
+      };
+
+      const validResult = validateAgainstModel(validData, arrayDateModel);
+      expect(isValidationError(validResult)).toBe(false);
+
+      const invalidResult = validateAgainstModel(invalidData, arrayDateModel);
+      expect(isValidationError(invalidResult)).toBe(true);
+      if (isValidationError(invalidResult)) {
+        expect(invalidResult.errors[0].field).toBe('eventDates[1]');
+      }
     });
   });
   describe('Phone Validation', () => {
@@ -926,7 +1070,7 @@ describe('Dynamic Validator Tests', () => {
       // Non-numeric values should fail
       const nonNumericData = {
         integerValue: 42,
-        decimalValue: "42.5", // String, not a number
+        decimalValue: '42.5', // String, not a number
       };
       const nonNumericResult = validateAgainstModel(nonNumericData, model);
       expect(isValidationError(nonNumericResult)).toBe(true);
@@ -1274,8 +1418,12 @@ describe('Model Version Integration Tests', () => {
         'user',
         2
       );
+
+      const latestModel = await pv.getLatestModelVersion('user');
+
       // console.log(modelV1);
       // console.log(modelV2);
+      // console.log(latestModel);
 
       expect(modelV1).toBeDefined();
       expect(modelV2).toBeDefined();
@@ -1460,8 +1608,8 @@ describe('Model Version Integration Tests', () => {
       // Get list of versions
       const versions = await pv.listModelVersions('user');
 
-      console.log(versions);
-      
+      // console.log(versions);
+
       // Should return all versions in descending order
       expect(versions).toEqual([5, 4, 3, 2, 1]);
     });
@@ -1469,10 +1617,122 @@ describe('Model Version Integration Tests', () => {
     it('should return empty array for non-existent models', async () => {
       // Try to get versions for non-existent model
       const versions = await pv.listModelVersions('nonexistent');
-      
+
       // Should return empty array
       expect(versions).toEqual([]);
       expect(versions.length).toBe(0);
+    });
+  });
+});
+
+describe('Mixed Type Validation - Number and Date', () => {
+  // Define a model with a number field and a date field
+  const mixedModel: PerfectValidator.ValidationModel = {
+    amount: {
+      type: 'N',
+      min: 0,
+      max: 1000,
+      decimal: true,
+    },
+    effectiveDate: {
+      type: 'DATE'
+    }
+  };
+
+  it('should validate valid number and date combinations', () => {
+    const validData = [
+      { amount: 100, effectiveDate: '2024-05-15' },
+      { amount: 0, effectiveDate: '2000-01-01' },
+      { amount: 999.99, effectiveDate: '2099-12-31' },
+      { amount: 50.25, effectiveDate: '2023-11-30' }
+    ];
+
+    validData.forEach(data => {
+      const result = validateAgainstModel(data, mixedModel);
+      // console.log(result);
+      expect(isValidationError(result)).toBe(false);
+      if (!isValidationError(result)) {
+        expect(result.data).toEqual(data);
+      }
+    });
+  });
+
+  it('should reject invalid number values', () => {
+    const invalidNumberData = [
+      { amount: -10, effectiveDate: '2024-05-15' },     // Below min
+      { amount: 1500, effectiveDate: '2024-05-15' },    // Above max
+      { amount: '100', effectiveDate: '2024-05-15' },   // Wrong type (string)
+      { amount: NaN, effectiveDate: '2024-05-15' }      // Not a number
+    ];
+
+    invalidNumberData.forEach(data => {
+      const result = validateAgainstModel(data, mixedModel);
+      // console.log(result);
+      expect(isValidationError(result)).toBe(true);
+      if (isValidationError(result)) {
+        expect(result.errors[0].field).toBe('amount');
+      }
+    });
+  });
+
+  it('should reject invalid date values', () => {
+    const invalidDateData = [
+      { amount: 100, effectiveDate: '2024-13-15' },     // Invalid month
+      { amount: 100, effectiveDate: '2024-05-32' },     // Invalid day
+      { amount: 100, effectiveDate: '05/15/2024' },     // Wrong format
+      { amount: 100, effectiveDate: '2024/05/15' },     // Wrong format
+      { amount: 100, effectiveDate: '2100-01-01' },     // Date too far in future
+      { amount: 100, effectiveDate: '1899-12-31' }      // Date too far in past
+    ];
+
+    invalidDateData.forEach(data => {
+      const result = validateAgainstModel(data, mixedModel);
+      // console.log(result);
+      expect(isValidationError(result)).toBe(true);
+      if (isValidationError(result)) {
+        expect(result.errors[0].field).toBe('effectiveDate');
+      }
+    });
+  });
+
+  it('should reject when both fields are invalid', () => {
+    const bothInvalidData = { 
+      amount: -50, 
+      effectiveDate: '2024-13-01' 
+    };
+
+    const result = validateAgainstModel(bothInvalidData, mixedModel);
+    expect(isValidationError(result)).toBe(true);
+    if (isValidationError(result)) {
+      // Should have an error for amount since it's typically validated first
+      expect(result.errors[0].field).toBe('amount');
+    }
+  });
+
+  it('should handle optional fields correctly', () => {
+    // Model with optional fields
+    const optionalModel: PerfectValidator.ValidationModel = {
+      amount: {
+        type: 'N',
+        min: 0,
+        optional: true
+      },
+      effectiveDate: {
+        type: 'DATE',
+        optional: true
+      }
+    };
+
+    const validCases = [
+      { amount: 100, effectiveDate: '2024-05-15' },  // Both fields present
+      { amount: 100 },                               // Only amount present
+      { effectiveDate: '2024-05-15' },               // Only date present
+      {}                                             // Neither field present
+    ];
+
+    validCases.forEach(data => {
+      const result = validateAgainstModel(data, optionalModel);
+      expect(isValidationError(result)).toBe(false);
     });
   });
 });
