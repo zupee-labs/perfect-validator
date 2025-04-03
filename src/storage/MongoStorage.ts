@@ -42,11 +42,7 @@ export class MongoStorage implements PerfectValidator.IModelStorage {
   async getModel(modelName: string): Promise<string | null> {
     // Get the model with the highest version
     const doc = await this.getCollection()
-      .find({ name: modelName })
-      .sort({ version: -1 })
-      .limit(1)
-      .next();
-
+      .findOne({ name: modelName }, { sort: { version: -1 } })
     return doc ? doc.model : null;
   }
 
