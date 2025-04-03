@@ -807,8 +807,6 @@ describe('Dynamic Validator Tests', () => {
 
       invalidDates.forEach(data => {
         const result = validateAgainstModel(data, dateModel);
-        console.log(data);
-        console.log(result);
         expect(isValidationError(result)).toBe(true);
         if (isValidationError(result)) {
           expect(result.errors[0].field).toBe('eventDate');
@@ -1421,9 +1419,7 @@ describe('Model Version Integration Tests', () => {
 
       const latestModel = await pv.getLatestModelVersion('user');
 
-      // console.log(modelV1);
-      // console.log(modelV2);
-      // console.log(latestModel);
+    
 
       expect(modelV1).toBeDefined();
       expect(modelV2).toBeDefined();
@@ -1448,7 +1444,6 @@ describe('Model Version Integration Tests', () => {
 
       // Validate against version 1
       const resultV1 = await pv.validateDynamic(validDataV1, 'user', 1);
-      // console.log(resultV1);
       expect(isValidationError(resultV1)).toBe(false);
 
       // This should fail against version 2
@@ -1457,7 +1452,6 @@ describe('Model Version Integration Tests', () => {
         'user',
         2
       );
-      // console.log(resultV1AgainstV2);
       expect(isValidationError(resultV1AgainstV2)).toBe(true);
 
       // Validate against version 2
@@ -1478,7 +1472,6 @@ describe('Model Version Integration Tests', () => {
       const latest: PerfectValidator.ValidationModel | null = await pv.getLatestModelVersion(
         'user'
       );
-      // console.log(latest);
       expect(latest).toBeDefined();
       // expect(latest?.name.minLength).toBe(3); // Should match updatedModel
     });
@@ -1489,9 +1482,7 @@ describe('Model Version Integration Tests', () => {
 
       // Attempt to store same version
       const duplicateResult = await pv.storeModel('user', updatedModel, 1);
-      // console.log(duplicateResult);
       expect(duplicateResult.isValid).toBe(false);
-      // expect(duplicateResult.errors).toContain(expect.stringContaining('already exists'));
     });
 
     it('should validate against latest version by default', async () => {
@@ -1521,7 +1512,6 @@ describe('Model Version Integration Tests', () => {
         'nonexistent',
         1
       );
-      // console.log(result);
       expect(isValidationError(result)).toBe(true);
       if (isValidationError(result)) {
         expect(result.errors[0].message).toContain('not found');
@@ -1608,7 +1598,6 @@ describe('Model Version Integration Tests', () => {
       // Get list of versions
       const versions = await pv.listModelVersions('user');
 
-      // console.log(versions);
 
       // Should return all versions in descending order
       expect(versions).toEqual([5, 4, 3, 2, 1]);
@@ -1649,7 +1638,6 @@ describe('Mixed Type Validation - Number and Date', () => {
 
     validData.forEach(data => {
       const result = validateAgainstModel(data, mixedModel);
-      // console.log(result);
       expect(isValidationError(result)).toBe(false);
       if (!isValidationError(result)) {
         expect(result.data).toEqual(data);
@@ -1667,7 +1655,6 @@ describe('Mixed Type Validation - Number and Date', () => {
 
     invalidNumberData.forEach(data => {
       const result = validateAgainstModel(data, mixedModel);
-      // console.log(result);
       expect(isValidationError(result)).toBe(true);
       if (isValidationError(result)) {
         expect(result.errors[0].field).toBe('amount');
@@ -1687,7 +1674,6 @@ describe('Mixed Type Validation - Number and Date', () => {
 
     invalidDateData.forEach(data => {
       const result = validateAgainstModel(data, mixedModel);
-      // console.log(result);
       expect(isValidationError(result)).toBe(true);
       if (isValidationError(result)) {
         expect(result.errors[0].field).toBe('effectiveDate');
@@ -1734,5 +1720,73 @@ describe('Mixed Type Validation - Number and Date', () => {
       const result = validateAgainstModel(data, optionalModel);
       expect(isValidationError(result)).toBe(false);
     });
+  });
+});
+
+describe('Date Dependency Validation with Epoch Conversion', () => {
+  let client: MongoClient;
+  let db: Db;
+  let pv: PV;
+
+  beforeAll(async () => {
+    client = await MongoClient.connect('mongodb://localhost:27017');
+    db = client.db('test_db');
+    const storage = new MongoStorage(db);
+    pv = new PV(storage);
+  });
+
+  afterAll(async () => {
+    await client.close();
+  });
+
+  it('should validate that end date is after start date using epoch conversion', async () => {
+    // Model with two date fields where endDate must be after startDate
+    const dateRangeModel: PerfectValidator.ValidationModel = {
+      startDate: {
+        type: 'DATE'
+      },
+      endDate: {
+        type: 'DATE',
+        dependsOn: {
+          field: 'startDate',
+          condition: function(startDate) {
+            return startDate !== undefined;
+          },
+          validate: function(endDate, startDate) {
+            const startEpoch = new Date(startDate).getTime();
+            const endEpoch = new Date(endDate).getTime();
+            return endEpoch > startEpoch;
+          },
+          message: 'End date must be after start date'
+        }
+      }
+    };
+
+    const storeModel = await pv.storeModel('dateRange', dateRangeModel);
+    const model = await pv.getModelVersion('dateRange', 1);
+
+    // Valid case - end date is after start date
+    const validData = {
+      startDate: '2023-01-01T10:00:00Z',
+      endDate: '2023-01-02T10:00:00Z'  // 1 day later
+    };
+
+    // Invalid case - end date is before start date
+    const invalidData = {
+      startDate: '2023-01-15T10:00:00Z',
+      endDate: '2023-01-10T10:00:00Z'  // 5 days earlier
+    };
+
+    // Test valid case
+    const validResult = validateAgainstModel(validData, model);
+    expect(isValidationError(validResult)).toBe(false);
+
+    // Test invalid case
+    const invalidResult = validateAgainstModel(invalidData, model);
+    expect(isValidationError(invalidResult)).toBe(true);
+    if (isValidationError(invalidResult)) {
+      expect(invalidResult.errors[0].field).toBe('endDate');
+      expect(invalidResult.errors[0].message).toBe('End date must be after start date');
+    }
   });
 });
