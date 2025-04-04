@@ -29,7 +29,9 @@ export class MongoStorage implements PerfectValidator.IModelStorage {
       if (indexCount <= 1) {
         console.warn('=================================================================');
         console.warn('WARNING: No custom indexes found on validation_models collection');
-        console.warn('Suggested indexes on name and version fields');
+        console.warn('Suggested indexes:');
+        console.warn('1. { name: 1, version: 1 } with unique constraint');
+        console.warn('2. { name: 1, version: -1 } for latest version queries');
         console.warn('=================================================================');
       }
     } catch (error) {
