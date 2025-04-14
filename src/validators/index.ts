@@ -250,10 +250,34 @@ export function validateDataModel(model: PerfectValidator.ValidationModel): Perf
 export function validateAgainstModel<T>(
     data: T, 
     model: PerfectValidator.ValidationModel, 
+    allowUnknownFields = false,
     parentPath = ''
 ): PerfectValidator.ValidationResponse<T> {
     const errors: PerfectValidator.ValidationError[] = [];
     const dataWithDefaults = applyDefaults(data, model);
+
+    if (typeof dataWithDefaults === 'object' && dataWithDefaults !== null && !allowUnknownFields) {
+        const modelKeys = Object.keys(model);
+        const dataKeys = Object.keys(dataWithDefaults);
+
+        dataKeys.forEach(dataKey => {
+            // Check if a key from the data exists in the model definition
+            if (!modelKeys.includes(dataKey)) {
+                const fieldPath = parentPath ? `${parentPath}.${dataKey}` : dataKey;
+                errors.push({
+                    field: fieldPath,
+                    message: `Unexpected field '${dataKey}' found in data.`
+                });
+            }
+        });
+    }
+    // **End of New Check**
+
+    // If extraneous fields were found, return early
+    if (errors.length > 0) {
+        return { isValid: false, errors };
+    }
+
 
     function validateValue(value: any, rule: PerfectValidator.ValidationRule | string, path: string): void {
         // Handle undefined for optional fields

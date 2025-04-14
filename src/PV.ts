@@ -20,7 +20,8 @@ export class PV {
    */
   public validateStatic<T>(
     data: T,
-    model: PerfectValidator.ValidationModel
+    model: PerfectValidator.ValidationModel,
+    allowUnknownFields?: boolean
   ): PerfectValidator.ValidationResponse<T> {
     const modelValidation: PerfectValidator.ModelValidationResponse = this.validateModel(
       model
@@ -34,7 +35,7 @@ export class PV {
         })) as PerfectValidator.ValidationError[],
       };
     }
-    return validateAgainstModel(data, model);
+    return validateAgainstModel(data, model , allowUnknownFields);
   }
 
   public static getInstance(storage?: PerfectValidator.IModelStorage): PV {
@@ -58,7 +59,8 @@ export class PV {
     data: T,
     modelName: string,
     version?: number,
-    collection?: string
+    collection?: string,
+    allowUnknownFields?: boolean
   ): Promise<PerfectValidator.ValidationResponse<T>> {
     if (!this.storage) {
       throw new Error('Storage is required for dynamic validation');
@@ -95,7 +97,7 @@ export class PV {
       const model: PerfectValidator.ValidationModel = deserializeValidationModel(
         serializedModel
       );
-      return validateAgainstModel(data, model);
+      return validateAgainstModel(data, model, allowUnknownFields);
     } catch (error) {
       if (error instanceof Error) {
         return {
