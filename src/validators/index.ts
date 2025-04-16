@@ -19,7 +19,7 @@ const PATTERNS: Record<string, RegExp> = {
     EMAIL: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z]{2,})+$/,
     URL: /^(https?:\/\/)([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})(:[0-9]{1,5})?(\/[^\s]*)?$/,
     PHONE: /^\+?[1-9]\d{0,2}[-.\s]?\(?\d{2,4}\)?[-.\s]?\d{3,4}[-.\s]?\d{3,4}$/,
-    DATE: /^(19|20)\d{2}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/
+    DATE: /^(19|20)\d{2}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])(?:T([01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|[+-]([01]\d|2[0-3]):[0-5]\d)?)?$/
 } as const;
 
 // Helper functions
@@ -250,10 +250,34 @@ export function validateDataModel(model: PerfectValidator.ValidationModel): Perf
 export function validateAgainstModel<T>(
     data: T, 
     model: PerfectValidator.ValidationModel, 
+    allowUnknownFields = false,
     parentPath = ''
 ): PerfectValidator.ValidationResponse<T> {
     const errors: PerfectValidator.ValidationError[] = [];
     const dataWithDefaults = applyDefaults(data, model);
+
+    if (typeof dataWithDefaults === 'object' && dataWithDefaults !== null && !allowUnknownFields) {
+        const modelKeys = Object.keys(model);
+        const dataKeys = Object.keys(dataWithDefaults);
+
+        dataKeys.forEach(dataKey => {
+            // Check if a key from the data exists in the model definition
+            if (!modelKeys.includes(dataKey)) {
+                const fieldPath = parentPath ? `${parentPath}.${dataKey}` : dataKey;
+                errors.push({
+                    field: fieldPath,
+                    message: `Unexpected field '${dataKey}' found in data.`
+                });
+            }
+        });
+    }
+    // **End of New Check**
+
+    // If extraneous fields were found, return early
+    if (errors.length > 0) {
+        return { isValid: false, errors };
+    }
+
 
     function validateValue(value: any, rule: PerfectValidator.ValidationRule | string, path: string): void {
         // Handle undefined for optional fields

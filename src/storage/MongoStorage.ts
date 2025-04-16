@@ -8,6 +8,35 @@ export class MongoStorage implements PerfectValidator.IModelStorage {
 
   constructor(db: Db) {
     this.db = db;
+    
+    // Check for required indexes instead of creating them
+    this.checkRequiredIndexes();
+  }
+
+  /**
+   * Checks if any indexes exist on the collection beyond the default _id index
+   * This allows index creation to be handled externally (e.g., by bash scripts)
+   */
+  private async checkRequiredIndexes(): Promise<void> {
+    try {
+      const collection = this.getCollection();
+
+      const indexInfo = await collection.indexInformation();      
+      // Count indexes - MongoDB always has at least the _id index
+      const indexCount = Object.keys(indexInfo).length;
+      
+      // If only the default _id index exists
+      if (indexCount <= 1) {
+        console.warn('=================================================================');
+        console.warn('WARNING: No custom indexes found on validation_models collection');
+        console.warn('Suggested indexes:');
+        console.warn('1. { name: 1, version: 1 } with unique constraint');
+        console.warn('2. { name: 1, version: -1 } for latest version queries');
+        console.warn('=================================================================');
+      }
+    } catch (error) {
+      console.error('Failed to check indexes:', error);
+    } 
   }
 
   private getCollection(collection?: string) {
@@ -15,10 +44,9 @@ export class MongoStorage implements PerfectValidator.IModelStorage {
   }
 
   async getModel(modelName: string): Promise<string | null> {
-    const doc = await this.getCollection().findOne({
-      name: modelName,
-      isLatest: true,
-    });
+    // Get the model with the highest version
+    const doc = await this.getCollection()
+      .findOne({ name: modelName }, { sort: { version: -1 } })
     return doc ? doc.model : null;
   }
 
@@ -42,15 +70,12 @@ export class MongoStorage implements PerfectValidator.IModelStorage {
       );
     }
 
-    // Update and insert as before, but using the specified collection
-    await col.updateMany({ name: modelName }, { $set: { isLatest: false } });
-
+    // Insert the new version without isLatest flag
     await col.insertOne({
       name: modelName,
       version: version,
       model: serializedModel,
       createdAt: new Date(),
-      isLatest: true,
     });
   }
 
@@ -77,18 +102,26 @@ export class MongoStorage implements PerfectValidator.IModelStorage {
     modelName: string,
     collection?: string
   ): Promise<PerfectValidator.ModelVersion | null> {
-    const doc = await this.getCollection(collection).findOne({
-      name: modelName,
-      isLatest: true,
-    });
+    // Create a cursor to find the model with the highest version number
+    const cursor = this.getCollection(collection)
+      .find({ name: modelName })
+      .sort({ version: -1 })
+      .limit(1);
 
-    if (!doc || !doc.model || Object.keys(doc.model).length === 0) return null;
+    // Check if there are any results
+    if (await cursor.hasNext()) {
+      const doc = await cursor.next();
 
-    return {
-      version: doc.version,
-      model: doc.model,
-      createdAt: doc.createdAt,
-    };
+      if (doc && doc.model && Object.keys(doc.model).length > 0) {
+        return {
+          version: doc.version,
+          model: doc.model,
+          createdAt: doc.createdAt,
+        };
+      }
+    }
+
+    return null;
   }
 
   async listModelVersions(
@@ -100,13 +133,13 @@ export class MongoStorage implements PerfectValidator.IModelStorage {
       .sort({ version: -1 });
 
     const versions: number[] = [];
-    
+
     // Use cursor.hasNext() for explicit cursor navigation
     while (await cursor.hasNext()) {
       const doc = await cursor.next();
       versions.push(doc.version);
     }
-    
+
     return versions;
   }
 
