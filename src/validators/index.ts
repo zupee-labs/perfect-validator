@@ -247,21 +247,15 @@ export function validateDataModel(model: PerfectValidator.ValidationModel): Perf
     };
 }
 
-export async function validateAgainstModel<T>(
+export function validateAgainstModel<T>(
     data: T, 
     model: PerfectValidator.ValidationModel, 
     allowUnknownFields = false,
     parentPath = ''
-): Promise<PerfectValidator.ValidationResponse<T>> {
+): PerfectValidator.ValidationResponse<T> {
     const errors: PerfectValidator.ValidationError[] = [];
     const dataWithDefaults = applyDefaults(data, model);
-    const asyncValidationPromises: Array<{
-      promise: Promise<boolean>;
-      field: string;
-      message: string;
-    }> = [];
 
-    // Check for extraneous fields if not allowed
     if (typeof dataWithDefaults === 'object' && dataWithDefaults !== null && !allowUnknownFields) {
         const modelKeys = Object.keys(model);
         const dataKeys = Object.keys(dataWithDefaults);
@@ -277,8 +271,9 @@ export async function validateAgainstModel<T>(
             }
         });
     }
+    // **End of New Check**
 
-    // Return early if extraneous field errors found
+    // If extraneous fields were found, return early
     if (errors.length > 0) {
         return { isValid: false, errors };
     }
@@ -453,18 +448,10 @@ export async function validateAgainstModel<T>(
                     
                 const conditionResult = dep.condition(depValue);
 
+
                 if (conditionResult) {
-                    const validationResult = dep.validate(value, depValue, dataWithDefaults);
-                    // Handle both synchronous and asynchronous validation
-                    if (validationResult instanceof Promise) {
-                        // For async validation, add to promises list
-                        asyncValidationPromises.push({
-                            promise: validationResult,
-                            field: path,
-                            message: dep.message
-                        });
-                    } else if (!validationResult) {
-                        // For sync validation, add error immediately if invalid
+                    const isValid = dep.validate(value, depValue, dataWithDefaults);
+                    if (!isValid) {
                         errors.push({
                             field: path,
                             message: dep.message
@@ -475,7 +462,7 @@ export async function validateAgainstModel<T>(
         }
     }
 
-    // Validate each field in the model (synchronous part)
+    // Validate each field in the model
     Object.entries(model).forEach(([key, rule]) => {
         validateValue(
             key.includes('.') || key.includes('[]') 
@@ -486,41 +473,10 @@ export async function validateAgainstModel<T>(
         );
     });
 
-    // If synchronous validation already found errors, return early
-    if (errors.length > 0) {
-        return { isValid: false, errors };
-    }
 
-    // Process async validations if any
-    if (asyncValidationPromises.length > 0) {
-        // Replace Promise.all with sequential processing
-        const asyncErrors: PerfectValidator.ValidationError[] = [];
-        
-        for (const { promise, field, message } of asyncValidationPromises) {
-            try {
-                // Process one validation at a time
-                const isValid = await promise;
-                
-                if (!isValid) {
-                    asyncErrors.push({ field, message });
-                    // Optional: Break on first error
-                    // break;
-                }
-            } catch (error) {
-                console.error(`Validation error for ${field}:`, error);
-                asyncErrors.push({
-                    field,
-                    message: `Async validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-                });
-            }
-        }
-        
-        if (asyncErrors.length > 0) {
-            return { isValid: false, errors: asyncErrors };
-        }
-    }
 
-    // All validations passed
-    return { isValid: true, data: dataWithDefaults };
+    return errors.length > 0 
+        ? { isValid: false, errors } 
+        : { isValid: true, data: dataWithDefaults };
 }
 

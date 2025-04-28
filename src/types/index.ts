@@ -37,11 +37,7 @@ export namespace PerfectValidator {
   export interface ValidationDependency {
     field: string;
     condition: (value: any) => boolean;
-    validate: (
-      value: any,
-      dependentValue: any,
-      fullData?: any
-    ) => boolean | Promise<boolean>;
+    validate: (value: any, dependentValue: any, fullData?: any) => boolean;
     message: string;
     optional?: boolean;
     isRequired?: boolean;
