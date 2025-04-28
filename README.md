@@ -73,9 +73,6 @@ const userData = {
 
 const result = validator.validateStatic(userData, userModel);
 console.log(result); // { isValid: true, data: userData } || { isValid: false, errors: [] }
-
-// Allow unknown fields that aren't defined in the model
-const resultWithUnknownFields = validator.validateStatic(userData, userModel, true);
 ```
 
 ### Dynamic Validation (Backend with MongoDB)
@@ -101,9 +98,6 @@ async function setupValidator() {
   // Later, validate data using stored model
   const result = await validator.validateDynamic(userData, 'userProfile');
   console.log(result); // { isValid: true, data: userData } || { isValid: false, errors: [] }
-  
-  // Allow unknown fields in dynamic validation
-  const resultWithUnknownFields = await validator.validateDynamic(userData, 'userProfile', 1, undefined, true);
 }
 ```
 
@@ -161,32 +155,6 @@ const passwordModel = {
 };
 ```
 
-### Asynchronous Validation with API Calls
-
-```typescript
-const usernameModel = {
-  username: {
-    type: 'S',
-    minLength: 3,
-    dependsOn: {
-      field: 'username', // Self-reference for async validation
-      condition: username => username && username.length >= 3,
-      validate: async (username) => {
-        // Make an API call to check username availability
-        const response = await fetch(`https://api.example.com/check-username`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username })
-        });
-        const result = await response.json();
-        return result.available; // Returns true if username is available
-      },
-      message: 'This username is already taken',
-    }
-  }
-};
-```
-
 ## Supported Types
 
 - `S` - String
@@ -206,13 +174,11 @@ const usernameModel = {
 - ✅ Dynamic validation with MongoDB
 - ✅ Type-safe validation responses
 - ✅ Dependent field validation
-- ✅ Custom validation functions (sync and async)
+- ✅ Custom validation functions
 - ✅ Default values
 - ✅ Optional fields
 - ✅ Array validation
 - ✅ Nested object validation
-- ✅ Support for unknown fields
-- ✅ Asynchronous API-based validation
 
 ## Why PV?
 
@@ -238,8 +204,6 @@ PV was created to solve validation challenges in modern distributed applications
 - **Dependency Validation**: Complex business rules with field dependencies
 - **Type Safety**: Built with TypeScript for better reliability
 - **Default Values**: Automatic value initialization
-- **Async Validation**: Support for API calls and other async operations
-- **Unknown Fields**: Optionally allow fields not defined in the model
 
 ### Example Use Cases
 

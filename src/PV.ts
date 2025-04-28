@@ -18,11 +18,11 @@ export class PV {
   /**
    * Static validation with direct model and data
    */
-  public async validateStatic<T>(
+  public validateStatic<T>(
     data: T,
     model: PerfectValidator.ValidationModel,
-    allowUnknownFields = false
-  ): Promise<PerfectValidator.ValidationResponse<T>> {
+    allowUnknownFields?: boolean
+  ): PerfectValidator.ValidationResponse<T> {
     const modelValidation: PerfectValidator.ModelValidationResponse = this.validateModel(
       model
     );
@@ -35,7 +35,7 @@ export class PV {
         })) as PerfectValidator.ValidationError[],
       };
     }
-    return await validateAgainstModel(data, model, allowUnknownFields);
+    return validateAgainstModel(data, model , allowUnknownFields);
   }
 
   public static getInstance(storage?: PerfectValidator.IModelStorage): PV {
@@ -53,7 +53,7 @@ export class PV {
   }
 
   /**
-   * Dynamic validation using stored model with optional collection (async version)
+   * Dynamic validation using stored model with optional collection
    */
   public async validateDynamic<T>(
     data: T,
@@ -97,7 +97,7 @@ export class PV {
       const model: PerfectValidator.ValidationModel = deserializeValidationModel(
         serializedModel
       );
-      return await validateAgainstModel(data, model, allowUnknownFields);
+      return validateAgainstModel(data, model, allowUnknownFields);
     } catch (error) {
       if (error instanceof Error) {
         return {

@@ -1,5 +1,5 @@
 // Add polyfills before any imports
-// global.fetch = require('node-fetch');
+
 const { TextEncoder, TextDecoder } = require('util');
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
@@ -15,12 +15,13 @@ import { MongoStorage } from '../src/storage/MongoStorage';
 import { PV } from '../src/PV';
 
 
+
 // Jest will automatically provide these globals
 // No need to import describe, it, expect
 
 describe('Dynamic Validator Tests', () => {
   describe('validateAgainstModel', () => {
-    it('should validate a simple model successfully', async () => {
+    it('should validate a simple model successfully', () => {
       const model: PerfectValidator.ValidationModel = {
         name: {
           type: 'S',
@@ -41,28 +42,28 @@ describe('Dynamic Validator Tests', () => {
         isActive: true,
       };
 
-      const result = await validateAgainstModel(data, model);
+      const result = validateAgainstModel(data, model);
       expect(isValidationError(result)).toBe(false);
       if (!isValidationError(result)) {
         expect(result.data).toEqual(data);
       }
     });
 
-    it('should reject invalid type', async () => {
+    it('should reject invalid type', () => {
       const model: PerfectValidator.ValidationModel = {
         field: {
           type: 'INVALID' as any,
         },
       };
 
-      const result = await validateAgainstModel({ field: 'test' }, model);
+      const result = validateAgainstModel({ field: 'test' }, model);
       expect(isValidationError(result)).toBe(true);
       if (isValidationError(result)) {
         expect(result.errors.length).toBeGreaterThan(0);
       }
     });
 
-    it('should validate nested objects', async () => {
+    it('should validate nested objects', () => {
       const model: PerfectValidator.ValidationModel = {
         user: {
           type: 'M',
@@ -87,14 +88,14 @@ describe('Dynamic Validator Tests', () => {
         },
       };
 
-      const result = await validateAgainstModel(data, model);
+      const result = validateAgainstModel(data, model);
       expect(isValidationError(result)).toBe(false);
       if (!isValidationError(result)) {
         expect(result.data).toEqual(data);
       }
     });
 
-    it('should validate array type', async () => {
+    it('should validate array type', () => {
       const model: PerfectValidator.ValidationModel = {
         scores: {
           type: 'L',
@@ -111,14 +112,14 @@ describe('Dynamic Validator Tests', () => {
         scores: [85, 90, 95],
       };
 
-      const result = await validateAgainstModel(data, model);
+      const result = validateAgainstModel(data, model);
       expect(isValidationError(result)).toBe(false);
       if (!isValidationError(result)) {
         expect(result.data).toEqual(data);
       }
     });
 
-    it('should validate dependencies', async () => {
+    it('should validate dependencies', () => {
       const model: PerfectValidator.ValidationModel = {
         maxPlayers: {
           type: 'N',
@@ -141,7 +142,7 @@ describe('Dynamic Validator Tests', () => {
         minPlayers: 2,
       };
 
-      const validResult = await validateAgainstModel(validData, model);
+      const validResult = validateAgainstModel(validData, model);
       expect(isValidationError(validResult)).toBe(false);
       if (!isValidationError(validResult)) {
         expect(validResult.data).toEqual(validData);
@@ -152,7 +153,7 @@ describe('Dynamic Validator Tests', () => {
         minPlayers: 4,
       };
 
-      const invalidResult = await validateAgainstModel(invalidData, model);
+      const invalidResult = validateAgainstModel(invalidData, model);
       expect(isValidationError(invalidResult)).toBe(true);
       if (isValidationError(invalidResult)) {
         expect(invalidResult.errors.length).toBeGreaterThan(0);
@@ -174,7 +175,7 @@ describe('Dynamic Validator Tests', () => {
       expect(deserialized).toEqual(originalModel);
     });
 
-    it('should handle nested dependencies', async () => {
+    it('should handle nested dependencies', () => {
       const originalModel: PerfectValidator.ValidationModel = {
         maxPlayers: {
           type: 'N',
@@ -199,17 +200,14 @@ describe('Dynamic Validator Tests', () => {
       const validData = { maxPlayers: 4, minPlayers: 2 };
       const invalidData = { maxPlayers: 2, minPlayers: 4 };
 
-      const validResult = await validateAgainstModel(validData, deserialized);
-      const invalidResult = await validateAgainstModel(
-        invalidData,
-        deserialized
-      );
+      const validResult = validateAgainstModel(validData, deserialized);
+      const invalidResult = validateAgainstModel(invalidData, deserialized);
 
       expect(isValidationError(validResult)).toBe(false);
       expect(isValidationError(invalidResult)).toBe(true);
     });
 
-    it('should handle complex nested structures', async () => {
+    it('should handle complex nested structures', () => {
       const originalModel: PerfectValidator.ValidationModel = {
         user: {
           type: 'M',
@@ -272,7 +270,7 @@ describe('Dynamic Validator Tests', () => {
         },
       };
 
-      const validResult = await validateAgainstModel(validData, deserialized);
+      const validResult = validateAgainstModel(validData, deserialized);
 
       expect(isValidationError(validResult)).toBe(false);
       if (!isValidationError(validResult)) {
@@ -288,10 +286,7 @@ describe('Dynamic Validator Tests', () => {
         },
       };
 
-      const invalidResult = await validateAgainstModel(
-        invalidData,
-        deserialized
-      );
+      const invalidResult = validateAgainstModel(invalidData, deserialized);
       expect(isValidationError(invalidResult)).toBe(true);
       if (isValidationError(invalidResult)) {
         expect(invalidResult.errors.length).toBeGreaterThan(0);
@@ -301,7 +296,7 @@ describe('Dynamic Validator Tests', () => {
       }
     });
 
-    it('should handle array of functions in model', async () => {
+    it('should handle array of functions in model', () => {
       const originalModel: PerfectValidator.ValidationModel = {
         values: {
           type: 'L',
@@ -336,12 +331,9 @@ describe('Dynamic Validator Tests', () => {
         someField: 1,
       };
 
-      const validResult = await validateAgainstModel(validData, deserialized);
+      const validResult = validateAgainstModel(validData, deserialized);
 
-      const invalidResult = await validateAgainstModel(
-        invalidData,
-        deserialized
-      );
+      const invalidResult = validateAgainstModel(invalidData, deserialized);
 
       expect(isValidationError(validResult)).toBe(false);
       if (!isValidationError(validResult)) {
@@ -354,7 +346,7 @@ describe('Dynamic Validator Tests', () => {
       }
     });
 
-    it('should handle multiple dependency functions', async () => {
+    it('should handle multiple dependency functions', () => {
       const originalModel: PerfectValidator.ValidationModel = {
         value: {
           type: 'N',
@@ -392,17 +384,14 @@ describe('Dynamic Validator Tests', () => {
         max: 10,
       };
 
-      const validResult = await validateAgainstModel(validData, deserialized);
-      const invalidResult = await validateAgainstModel(
-        invalidData,
-        deserialized
-      );
+      const validResult = validateAgainstModel(validData, deserialized);
+      const invalidResult = validateAgainstModel(invalidData, deserialized);
 
       expect(isValidationError(validResult)).toBe(false);
       expect(isValidationError(invalidResult)).toBe(true);
     });
 
-    it('should handle different function formats', async () => {
+    it('should handle different function formats', () => {
       const model: PerfectValidator.ValidationModel = {
         field1: {
           type: 'N',
@@ -453,14 +442,14 @@ describe('Dynamic Validator Tests', () => {
         other: 100,
       };
 
-      const invalidResult = await validateAgainstModel(invalidData, model);
+      const invalidResult = validateAgainstModel(invalidData, model);
       expect(isValidationError(invalidResult)).toBe(true);
       if (isValidationError(invalidResult)) {
         expect(invalidResult.errors.length).toBeGreaterThan(0);
       }
     });
 
-    it('should handle complex function logic', async () => {
+    it('should handle complex function logic', () => {
       const originalModel: PerfectValidator.ValidationModel = {
         value: {
           type: 'N',
@@ -517,11 +506,8 @@ describe('Dynamic Validator Tests', () => {
         },
       };
 
-      const validResult = await validateAgainstModel(validData, deserialized);
-      const invalidResult = await validateAgainstModel(
-        invalidData,
-        deserialized
-      );
+      const validResult = validateAgainstModel(validData, deserialized);
+      const invalidResult = validateAgainstModel(invalidData, deserialized);
 
       expect(isValidationError(validResult)).toBe(false);
       expect(isValidationError(invalidResult)).toBe(true);
@@ -529,7 +515,7 @@ describe('Dynamic Validator Tests', () => {
   });
 
   describe('Function Serialization/Deserialization', () => {
-    it('should handle single-line arrow functions', async () => {
+    it('should handle single-line arrow functions', () => {
       const model: PerfectValidator.ValidationModel = {
         value: {
           type: 'N',
@@ -549,17 +535,14 @@ describe('Dynamic Validator Tests', () => {
       const validData = { value: 5, other: 10 };
       const invalidData = { value: 15, other: 10 };
 
-      const validResult = await validateAgainstModel(validData, deserialized);
-      const invalidResult = await validateAgainstModel(
-        invalidData,
-        deserialized
-      );
+      const validResult = validateAgainstModel(validData, deserialized);
+      const invalidResult = validateAgainstModel(invalidData, deserialized);
 
       expect(isValidationError(validResult)).toBe(false);
       expect(isValidationError(invalidResult)).toBe(true);
     });
 
-    it('should handle multi-line arrow functions', async () => {
+    it('should handle multi-line arrow functions', () => {
       const model: PerfectValidator.ValidationModel = {
         value: {
           type: 'N',
@@ -589,18 +572,15 @@ describe('Dynamic Validator Tests', () => {
       const validData = { value: 50, other: 100 };
       const invalidData = { value: 150, other: 100 };
 
-      const validResult = await validateAgainstModel(validData, deserialized);
+      const validResult = validateAgainstModel(validData, deserialized);
 
-      const invalidResult = await validateAgainstModel(
-        invalidData,
-        deserialized
-      );
+      const invalidResult = validateAgainstModel(invalidData, deserialized);
 
       expect(isValidationError(validResult)).toBe(false);
       expect(isValidationError(invalidResult)).toBe(true);
     });
 
-    it('should handle regular functions', async () => {
+    it('should handle regular functions', () => {
       const model: PerfectValidator.ValidationModel = {
         value: {
           type: 'N',
@@ -624,17 +604,14 @@ describe('Dynamic Validator Tests', () => {
       const validData = { value: 50, other: 99 };
       const invalidData = { value: 150, other: 99 };
 
-      const validResult = await validateAgainstModel(validData, deserialized);
-      const invalidResult = await validateAgainstModel(
-        invalidData,
-        deserialized
-      );
+      const validResult = validateAgainstModel(validData, deserialized);
+      const invalidResult = validateAgainstModel(invalidData, deserialized);
 
       expect(isValidationError(validResult)).toBe(false);
       expect(isValidationError(invalidResult)).toBe(true);
     });
 
-    it('should handle complex function logic', async () => {
+    it('should handle complex function logic', () => {
       const model: PerfectValidator.ValidationModel = {
         value: {
           type: 'N',
@@ -689,12 +666,9 @@ describe('Dynamic Validator Tests', () => {
         config: { min: 0, max: 10, isEven: true },
       };
 
-      const validResult = await validateAgainstModel(validData, deserialized);
+      const validResult = validateAgainstModel(validData, deserialized);
 
-      const invalidResult = await validateAgainstModel(
-        invalidData,
-        deserialized
-      );
+      const invalidResult = validateAgainstModel(invalidData, deserialized);
 
       expect(isValidationError(validResult)).toBe(false);
       expect(isValidationError(invalidResult)).toBe(true);
@@ -725,13 +699,13 @@ describe('Dynamic Validator Tests', () => {
       'user@domain..com',
     ];
 
-    test.each(validEmails)('should validate correct email: %s', async email => {
-      const result = await validateAgainstModel({ email }, emailModel);
+    test.each(validEmails)('should validate correct email: %s', email => {
+      const result = validateAgainstModel({ email }, emailModel);
       expect(isValidationError(result)).toBe(false);
     });
 
-    test.each(invalidEmails)('should reject invalid email: %s', async email => {
-      const result = await validateAgainstModel({ email }, emailModel);
+    test.each(invalidEmails)('should reject invalid email: %s', email => {
+      const result = validateAgainstModel({ email }, emailModel);
       expect(isValidationError(result)).toBe(true);
     });
   });
@@ -759,13 +733,13 @@ describe('Dynamic Validator Tests', () => {
       'http://example.com:abc',
     ];
 
-    test.each(validUrls)('should validate correct URL: %s', async url => {
-      const result = await validateAgainstModel({ url }, urlModel);
+    test.each(validUrls)('should validate correct URL: %s', url => {
+      const result = validateAgainstModel({ url }, urlModel);
       expect(isValidationError(result)).toBe(false);
     });
 
-    test.each(invalidUrls)('should reject invalid URL: %s', async url => {
-      const result = await validateAgainstModel({ url }, urlModel);
+    test.each(invalidUrls)('should reject invalid URL: %s', url => {
+      const result = validateAgainstModel({ url }, urlModel);
       expect(isValidationError(result)).toBe(true);
     });
   });
@@ -773,34 +747,34 @@ describe('Dynamic Validator Tests', () => {
     // Define models for testing date validation
     const dateModel: PerfectValidator.ValidationModel = {
       eventDate: {
-        type: 'DATE',
-      },
+        type: 'DATE'
+      }
     };
 
     const optionalDateModel: PerfectValidator.ValidationModel = {
       eventDate: {
         type: 'DATE',
-        optional: true,
-      },
+        optional: true
+      }
     };
 
     // Test valid date formats
-    it('should validate valid date formats', async () => {
+    it('should validate valid date formats', () => {
       const validDates = [
-        { eventDate: '2023-01-01' }, // Basic date format
-        { eventDate: '2023-12-31' }, // End of year
-        { eventDate: '2023-02-28' }, // End of month
-        { eventDate: '2024-02-29' }, // Leap year
-        { eventDate: '2023-01-01T00:00:00Z' }, // Date with UTC time
-        { eventDate: '2023-01-01T12:30:45Z' }, // Date with time
-        { eventDate: '2023-01-01T23:59:59Z' }, // End of day
-        { eventDate: '2023-01-01T12:30:45.123Z' }, // With milliseconds
-        { eventDate: '2023-01-01T12:30:45+05:30' }, // With timezone offset
-        { eventDate: '2023-01-01T12:30:45-08:00' }, // Negative timezone offset
+        { eventDate: '2023-01-01' },              // Basic date format
+        { eventDate: '2023-12-31' },              // End of year
+        { eventDate: '2023-02-28' },              // End of month
+        { eventDate: '2024-02-29' },              // Leap year
+        { eventDate: '2023-01-01T00:00:00Z' },    // Date with UTC time
+        { eventDate: '2023-01-01T12:30:45Z' },    // Date with time
+        { eventDate: '2023-01-01T23:59:59Z' },    // End of day
+        { eventDate: '2023-01-01T12:30:45.123Z' },// With milliseconds
+        { eventDate: '2023-01-01T12:30:45+05:30' },// With timezone offset
+        { eventDate: '2023-01-01T12:30:45-08:00' } // Negative timezone offset
       ];
 
-      validDates.forEach(async data => {
-        const result = await validateAgainstModel(data, dateModel);
+      validDates.forEach(data => {
+        const result = validateAgainstModel(data, dateModel);
         expect(isValidationError(result)).toBe(false);
         if (!isValidationError(result)) {
           expect(result.data).toEqual(data);
@@ -809,30 +783,30 @@ describe('Dynamic Validator Tests', () => {
     });
 
     // Test invalid date formats
-    it('should reject invalid date formats', async () => {
+    it('should reject invalid date formats', () => {
       const invalidDates = [
-        { eventDate: '01-01-2023' }, // Wrong format (MM-DD-YYYY)
-        { eventDate: '2023/01/01' }, // Wrong separator
-        { eventDate: '2023-13-01' }, // Invalid month
-        { eventDate: '2023-00-01' }, // Zero month
-        { eventDate: '2023-01-32' }, // Invalid day
-        { eventDate: '2023-01-00' }, // Zero day
-        { eventDate: '2023-13-28' }, // Invalid day for month
-        { eventDate: '2023-1-1' }, // Missing leading zeros
-        { eventDate: '23-01-01' }, // Two-digit year
-        { eventDate: 'January 1, 2023' }, // Text format
-        { eventDate: '2023-01-01 12:30:45' }, // Space instead of T
-        { eventDate: '2023-01-01T25:00:00Z' }, // Invalid hour
-        { eventDate: '2023-01-01T12:60:00Z' }, // Invalid minute
-        { eventDate: '2023-01-01T12:30:60Z' }, // Invalid second
-        { eventDate: 20230101 }, // Number instead of string
-        { eventDate: true }, // Boolean instead of string
-        { eventDate: null }, // Null instead of string
-        { eventDate: {} }, // Object instead of string
+        { eventDate: '01-01-2023' },              // Wrong format (MM-DD-YYYY)
+        { eventDate: '2023/01/01' },              // Wrong separator
+        { eventDate: '2023-13-01' },              // Invalid month
+        { eventDate: '2023-00-01' },              // Zero month
+        { eventDate: '2023-01-32' },              // Invalid day
+        { eventDate: '2023-01-00' },              // Zero day
+        { eventDate: '2023-13-28' },              // Invalid day for month         
+        { eventDate: '2023-1-1' },                // Missing leading zeros
+        { eventDate: '23-01-01' },                // Two-digit year
+        { eventDate: 'January 1, 2023' },         // Text format
+        { eventDate: '2023-01-01 12:30:45' },     // Space instead of T
+        { eventDate: '2023-01-01T25:00:00Z' },    // Invalid hour
+        { eventDate: '2023-01-01T12:60:00Z' },    // Invalid minute
+        { eventDate: '2023-01-01T12:30:60Z' },    // Invalid second
+        { eventDate: 20230101 },                  // Number instead of string
+        { eventDate: true },                      // Boolean instead of string
+        { eventDate: null },                      // Null instead of string
+        { eventDate: {} }                         // Object instead of string
       ];
 
-      invalidDates.forEach(async data => {
-        const result = await validateAgainstModel(data, dateModel);
+      invalidDates.forEach(data => {
+        const result = validateAgainstModel(data, dateModel);
         expect(isValidationError(result)).toBe(true);
         if (isValidationError(result)) {
           expect(result.errors[0].field).toBe('eventDate');
@@ -843,76 +817,70 @@ describe('Dynamic Validator Tests', () => {
     // Test optional date field
     it('should handle optional date fields correctly', () => {
       const testCases = [
-        { eventDate: '2023-01-01' }, // Present and valid
-        { eventDate: '2023-01-01T12:30:45Z' }, // Present with time and valid
-        {}, // Not present (optional)
+        { eventDate: '2023-01-01' },              // Present and valid
+        { eventDate: '2023-01-01T12:30:45Z' },    // Present with time and valid
+        {}                                         // Not present (optional)
       ];
 
-      testCases.forEach(async data => {
-        const result = await validateAgainstModel(data, optionalDateModel);
+      testCases.forEach(data => {
+        const result = validateAgainstModel(data, optionalDateModel);
         expect(isValidationError(result)).toBe(false);
       });
     });
 
     // Test century boundaries
-    it('should validate dates at century boundaries', async () => {
+    it('should validate dates at century boundaries', () => {
       const testCases = [
-        { eventDate: '1900-01-01' }, // Start of 20th century (should pass)
-        { eventDate: '2000-01-01' }, // Millennium
-        { eventDate: '2099-12-31' }, // End of 21st century
-        { eventDate: '1899-12-31' }, // 19th century (should fail)
-        { eventDate: '2100-01-01' }, // 22nd century (should fail)
+        { eventDate: '1900-01-01' },              // Start of 20th century (should pass)
+        { eventDate: '2000-01-01' },              // Millennium
+        { eventDate: '2099-12-31' },              // End of 21st century
+        { eventDate: '1899-12-31' },              // 19th century (should fail)
+        { eventDate: '2100-01-01' },              // 22nd century (should fail)
       ];
 
       // First 3 should pass
       for (let i = 0; i < 3; i++) {
-        const result = await validateAgainstModel(testCases[i], dateModel);
+        const result = validateAgainstModel(testCases[i], dateModel);
         expect(isValidationError(result)).toBe(false);
       }
-
+      
       // Last 2 should fail
       for (let i = 3; i < 5; i++) {
-        const result = await validateAgainstModel(testCases[i], dateModel);
+        const result = validateAgainstModel(testCases[i], dateModel);
         expect(isValidationError(result)).toBe(true);
       }
     });
 
     // Test dates in nested objects
-    it('should validate dates in nested objects', async () => {
+    it('should validate dates in nested objects', () => {
       const nestedDateModel: PerfectValidator.ValidationModel = {
         event: {
           type: 'M',
           fields: {
             name: { type: 'S' },
-            scheduledDate: { type: 'DATE' },
-          },
-        },
+            scheduledDate: { type: 'DATE' }
+          }
+        }
       };
 
       const validData = {
         event: {
-          name: 'Conference',
-          scheduledDate: '2023-06-15T09:00:00Z',
-        },
+          name: "Conference",
+          scheduledDate: "2023-06-15T09:00:00Z"
+        }
       };
 
       const invalidData = {
         event: {
-          name: 'Conference',
-          scheduledDate: '06/15/2023',
-        },
+          name: "Conference",
+          scheduledDate: "06/15/2023"
+        }
       };
 
-      const validResult = await validateAgainstModel(
-        validData,
-        nestedDateModel
-      );
+      const validResult = validateAgainstModel(validData, nestedDateModel);
       expect(isValidationError(validResult)).toBe(false);
 
-      const invalidResult = await validateAgainstModel(
-        invalidData,
-        nestedDateModel
-      );
+      const invalidResult = validateAgainstModel(invalidData, nestedDateModel);
       expect(isValidationError(invalidResult)).toBe(true);
       if (isValidationError(invalidResult)) {
         expect(invalidResult.errors[0].field).toBe('event.scheduledDate');
@@ -920,29 +888,26 @@ describe('Dynamic Validator Tests', () => {
     });
 
     // Test dates in arrays
-    it('should validate dates in arrays', async () => {
+    it('should validate dates in arrays', () => {
       const arrayDateModel: PerfectValidator.ValidationModel = {
         eventDates: {
           type: 'L',
-          items: { type: 'DATE' },
-        },
+          items: { type: 'DATE' }
+        }
       };
 
       const validData = {
-        eventDates: ['2023-01-01', '2023-02-15T12:30:00Z', '2023-12-31'],
+        eventDates: ["2023-01-01", "2023-02-15T12:30:00Z", "2023-12-31"]
       };
 
       const invalidData = {
-        eventDates: ['2023-01-01', 'invalid-date', '2023-12-31'],
+        eventDates: ["2023-01-01", "invalid-date", "2023-12-31"]
       };
 
-      const validResult = await validateAgainstModel(validData, arrayDateModel);
+      const validResult = validateAgainstModel(validData, arrayDateModel);
       expect(isValidationError(validResult)).toBe(false);
 
-      const invalidResult = await validateAgainstModel(
-        invalidData,
-        arrayDateModel
-      );
+      const invalidResult = validateAgainstModel(invalidData, arrayDateModel);
       expect(isValidationError(invalidResult)).toBe(true);
       if (isValidationError(invalidResult)) {
         expect(invalidResult.errors[0].field).toBe('eventDates[1]');
@@ -972,18 +937,18 @@ describe('Dynamic Validator Tests', () => {
       '+00 123', // Too short
     ];
 
-    test.each(validPhones)('should validate correct phone: %s', async phone => {
-      const result = await validateAgainstModel({ phone }, phoneModel);
+    test.each(validPhones)('should validate correct phone: %s', phone => {
+      const result = validateAgainstModel({ phone }, phoneModel);
       expect(isValidationError(result)).toBe(false);
     });
 
-    test.each(invalidPhones)('should reject invalid phone: %s', async phone => {
-      const result = await validateAgainstModel({ phone }, phoneModel);
+    test.each(invalidPhones)('should reject invalid phone: %s', phone => {
+      const result = validateAgainstModel({ phone }, phoneModel);
       expect(isValidationError(result)).toBe(true);
     });
   });
   describe('Number Validation', () => {
-    it('should validate decimal numbers', async () => {
+    it('should validate decimal numbers', () => {
       const model: PerfectValidator.ValidationModel = {
         basicDecimal: {
           type: 'N',
@@ -1009,7 +974,7 @@ describe('Dynamic Validator Tests', () => {
         decimalRange: 5.75, // Within range
       };
 
-      const validResult = await validateAgainstModel(validData, model);
+      const validResult = validateAgainstModel(validData, model);
       expect(isValidationError(validResult)).toBe(false);
 
       // Valid data - integer that's treated as decimal (1.0 -> 1)
@@ -1019,10 +984,7 @@ describe('Dynamic Validator Tests', () => {
         decimalRange: 5.75,
       };
 
-      const validIntegerResult = await validateAgainstModel(
-        validIntegerData,
-        model
-      );
+      const validIntegerResult = validateAgainstModel(validIntegerData, model);
       expect(isValidationError(validIntegerResult)).toBe(false);
 
       // Invalid - wrong number of decimal places
@@ -1032,7 +994,7 @@ describe('Dynamic Validator Tests', () => {
         decimalRange: 5.75,
       };
 
-      const wrongDecimalPlacesResult = await validateAgainstModel(
+      const wrongDecimalPlacesResult = validateAgainstModel(
         wrongDecimalPlacesData,
         model
       );
@@ -1050,10 +1012,7 @@ describe('Dynamic Validator Tests', () => {
         decimalRange: 11.75, // Above max of 10.5
       };
 
-      const outOfRangeResult = await validateAgainstModel(
-        outOfRangeData,
-        model
-      );
+      const outOfRangeResult = validateAgainstModel(outOfRangeData, model);
       expect(isValidationError(outOfRangeResult)).toBe(true);
       if (isValidationError(outOfRangeResult)) {
         expect(outOfRangeResult.errors[0].message).toContain(
@@ -1062,7 +1021,7 @@ describe('Dynamic Validator Tests', () => {
       }
     });
 
-    it('should validate mixed integer and decimal requirements', async () => {
+    it('should validate mixed integer and decimal requirements', () => {
       const model: PerfectValidator.ValidationModel = {
         integerValue: {
           type: 'N',
@@ -1079,7 +1038,7 @@ describe('Dynamic Validator Tests', () => {
         integerValue: 42,
         decimalValue: 42.5,
       };
-      const validResult = await validateAgainstModel(validData, model);
+      const validResult = validateAgainstModel(validData, model);
       expect(isValidationError(validResult)).toBe(false);
 
       // Also valid with 1.0 treated as integer
@@ -1087,7 +1046,7 @@ describe('Dynamic Validator Tests', () => {
         integerValue: 42,
         decimalValue: 1.0, // JavaScript treats as 1, but your validation still passes it
       };
-      const alsoValidResult = await validateAgainstModel(alsoValidData, model);
+      const alsoValidResult = validateAgainstModel(alsoValidData, model);
       expect(isValidationError(alsoValidResult)).toBe(false);
 
       // Invalid integer (should be integer)
@@ -1095,7 +1054,7 @@ describe('Dynamic Validator Tests', () => {
         integerValue: 42.5,
         decimalValue: 42.5,
       };
-      const invalidIntegerResult = await validateAgainstModel(
+      const invalidIntegerResult = validateAgainstModel(
         invalidIntegerData,
         model
       );
@@ -1111,17 +1070,14 @@ describe('Dynamic Validator Tests', () => {
         integerValue: 42,
         decimalValue: '42.5', // String, not a number
       };
-      const nonNumericResult = await validateAgainstModel(
-        nonNumericData,
-        model
-      );
+      const nonNumericResult = validateAgainstModel(nonNumericData, model);
       expect(isValidationError(nonNumericResult)).toBe(true);
     });
   });
 });
 
 describe('Dependency Validation Tests', () => {
-  it('should validate nested path dependencies', async () => {
+  it('should validate nested path dependencies', () => {
     const model: PerfectValidator.ValidationModel = {
       user: {
         type: 'M',
@@ -1166,8 +1122,8 @@ describe('Dependency Validation Tests', () => {
       },
     };
 
-    const validResult = await validateAgainstModel(validData, model);
-    const invalidResult = await validateAgainstModel(invalidData, model);
+    const validResult = validateAgainstModel(validData, model);
+    const invalidResult = validateAgainstModel(invalidData, model);
 
     expect(isValidationError(validResult)).toBe(false);
     expect(isValidationError(invalidResult)).toBe(true);
@@ -1176,7 +1132,7 @@ describe('Dependency Validation Tests', () => {
     }
   });
 
-  it('should validate cross-object dependencies', async () => {
+  it('should validate cross-object dependencies', () => {
     const model: PerfectValidator.ValidationModel = {
       order: {
         type: 'M',
@@ -1211,8 +1167,8 @@ describe('Dependency Validation Tests', () => {
       payment: { method: 'CASH' },
     };
 
-    const validResult = await validateAgainstModel(validData, model);
-    const invalidResult = await validateAgainstModel(invalidData, model);
+    const validResult = validateAgainstModel(validData, model);
+    const invalidResult = validateAgainstModel(invalidData, model);
 
     expect(isValidationError(validResult)).toBe(false);
     expect(isValidationError(invalidResult)).toBe(true);
@@ -1223,7 +1179,7 @@ describe('Dependency Validation Tests', () => {
     }
   });
 
-  it('should validate array item dependencies', async () => {
+  it('should validate array item dependencies', () => {
     const model: PerfectValidator.ValidationModel = {
       students: {
         type: 'L',
@@ -1270,9 +1226,9 @@ describe('Dependency Validation Tests', () => {
     };
 
     // Test with deserialized model
-    const validResult = await validateAgainstModel(validData, deserialized);
+    const validResult = validateAgainstModel(validData, deserialized);
 
-    const invalidResult = await validateAgainstModel(invalidData, deserialized);
+    const invalidResult = validateAgainstModel(invalidData, deserialized);
 
     expect(isValidationError(validResult)).toBe(false);
     expect(isValidationError(invalidResult)).toBe(true);
@@ -1284,7 +1240,7 @@ describe('Dependency Validation Tests', () => {
     }
   });
 
-  it('should handle multiple dependencies', async () => {
+  it('should handle multiple dependencies', () => {
     const model: PerfectValidator.ValidationModel = {
       shipping: {
         type: 'M',
@@ -1337,9 +1293,9 @@ describe('Dependency Validation Tests', () => {
       },
     };
 
-    const validResult = await validateAgainstModel(validData, model);
-    const invalidResult1 = await validateAgainstModel(invalidData1, model);
-    const invalidResult2 = await validateAgainstModel(invalidData2, model);
+    const validResult = validateAgainstModel(validData, model);
+    const invalidResult1 = validateAgainstModel(invalidData1, model);
+    const invalidResult2 = validateAgainstModel(invalidData2, model);
 
     expect(isValidationError(validResult)).toBe(false);
     expect(isValidationError(invalidResult1)).toBe(true);
@@ -1357,7 +1313,7 @@ describe('Dependency Validation Tests', () => {
     }
   });
 
-  it('should handle circular dependencies', async () => {
+  it('should handle circular dependencies', () => {
     const model: PerfectValidator.ValidationModel = {
       min: {
         type: 'N',
@@ -1389,8 +1345,8 @@ describe('Dependency Validation Tests', () => {
       max: 50,
     };
 
-    const validResult = await validateAgainstModel(validData, model);
-    const invalidResult = await validateAgainstModel(invalidData, model);
+    const validResult = validateAgainstModel(validData, model);
+    const invalidResult = validateAgainstModel(invalidData, model);
 
     expect(isValidationError(validResult)).toBe(false);
     expect(isValidationError(invalidResult)).toBe(true);
@@ -1462,6 +1418,8 @@ describe('Model Version Integration Tests', () => {
       );
 
       const latestModel = await pv.getLatestModelVersion('user');
+
+    
 
       expect(modelV1).toBeDefined();
       expect(modelV2).toBeDefined();
@@ -1640,6 +1598,7 @@ describe('Model Version Integration Tests', () => {
       // Get list of versions
       const versions = await pv.listModelVersions('user');
 
+
       // Should return all versions in descending order
       expect(versions).toEqual([5, 4, 3, 2, 1]);
     });
@@ -1665,20 +1624,20 @@ describe('Mixed Type Validation - Number and Date', () => {
       decimal: true,
     },
     effectiveDate: {
-      type: 'DATE',
-    },
+      type: 'DATE'
+    }
   };
 
-  it('should validate valid number and date combinations', async () => {
+  it('should validate valid number and date combinations', () => {
     const validData = [
       { amount: 100, effectiveDate: '2024-05-15' },
       { amount: 0, effectiveDate: '2000-01-01' },
       { amount: 999.99, effectiveDate: '2099-12-31' },
-      { amount: 50.25, effectiveDate: '2023-11-30' },
+      { amount: 50.25, effectiveDate: '2023-11-30' }
     ];
 
-    validData.forEach(async data => {
-      const result = await validateAgainstModel(data, mixedModel);
+    validData.forEach(data => {
+      const result = validateAgainstModel(data, mixedModel);
       expect(isValidationError(result)).toBe(false);
       if (!isValidationError(result)) {
         expect(result.data).toEqual(data);
@@ -1686,16 +1645,16 @@ describe('Mixed Type Validation - Number and Date', () => {
     });
   });
 
-  it('should reject invalid number values', async () => {
+  it('should reject invalid number values', () => {
     const invalidNumberData = [
-      { amount: -10, effectiveDate: '2024-05-15' }, // Below min
-      { amount: 1500, effectiveDate: '2024-05-15' }, // Above max
-      { amount: '100', effectiveDate: '2024-05-15' }, // Wrong type (string)
-      { amount: NaN, effectiveDate: '2024-05-15' }, // Not a number
+      { amount: -10, effectiveDate: '2024-05-15' },     // Below min
+      { amount: 1500, effectiveDate: '2024-05-15' },    // Above max
+      { amount: '100', effectiveDate: '2024-05-15' },   // Wrong type (string)
+      { amount: NaN, effectiveDate: '2024-05-15' }      // Not a number
     ];
 
-    invalidNumberData.forEach(async data => {
-      const result = await validateAgainstModel(data, mixedModel);
+    invalidNumberData.forEach(data => {
+      const result = validateAgainstModel(data, mixedModel);
       expect(isValidationError(result)).toBe(true);
       if (isValidationError(result)) {
         expect(result.errors[0].field).toBe('amount');
@@ -1703,18 +1662,18 @@ describe('Mixed Type Validation - Number and Date', () => {
     });
   });
 
-  it('should reject invalid date values', async () => {
+  it('should reject invalid date values', () => {
     const invalidDateData = [
-      { amount: 100, effectiveDate: '2024-13-15' }, // Invalid month
-      { amount: 100, effectiveDate: '2024-05-32' }, // Invalid day
-      { amount: 100, effectiveDate: '05/15/2024' }, // Wrong format
-      { amount: 100, effectiveDate: '2024/05/15' }, // Wrong format
-      { amount: 100, effectiveDate: '2100-01-01' }, // Date too far in future
-      { amount: 100, effectiveDate: '1899-12-31' }, // Date too far in past
+      { amount: 100, effectiveDate: '2024-13-15' },     // Invalid month
+      { amount: 100, effectiveDate: '2024-05-32' },     // Invalid day
+      { amount: 100, effectiveDate: '05/15/2024' },     // Wrong format
+      { amount: 100, effectiveDate: '2024/05/15' },     // Wrong format
+      { amount: 100, effectiveDate: '2100-01-01' },     // Date too far in future
+      { amount: 100, effectiveDate: '1899-12-31' }      // Date too far in past
     ];
 
-    invalidDateData.forEach(async data => {
-      const result = await validateAgainstModel(data, mixedModel);
+    invalidDateData.forEach(data => {
+      const result = validateAgainstModel(data, mixedModel);
       expect(isValidationError(result)).toBe(true);
       if (isValidationError(result)) {
         expect(result.errors[0].field).toBe('effectiveDate');
@@ -1722,13 +1681,13 @@ describe('Mixed Type Validation - Number and Date', () => {
     });
   });
 
-  it('should reject when both fields are invalid', async () => {
-    const bothInvalidData = {
-      amount: -50,
-      effectiveDate: '2024-13-01',
+  it('should reject when both fields are invalid', () => {
+    const bothInvalidData = { 
+      amount: -50, 
+      effectiveDate: '2024-13-01' 
     };
 
-    const result = await validateAgainstModel(bothInvalidData, mixedModel);
+    const result = validateAgainstModel(bothInvalidData, mixedModel);
     expect(isValidationError(result)).toBe(true);
     if (isValidationError(result)) {
       // Should have an error for amount since it's typically validated first
@@ -1736,29 +1695,29 @@ describe('Mixed Type Validation - Number and Date', () => {
     }
   });
 
-  it('should handle optional fields correctly', async () => {
+  it('should handle optional fields correctly', () => {
     // Model with optional fields
     const optionalModel: PerfectValidator.ValidationModel = {
       amount: {
         type: 'N',
         min: 0,
-        optional: true,
+        optional: true
       },
       effectiveDate: {
         type: 'DATE',
-        optional: true,
-      },
+        optional: true
+      }
     };
 
     const validCases = [
-      { amount: 100, effectiveDate: '2024-05-15' }, // Both fields present
-      { amount: 100 }, // Only amount present
-      { effectiveDate: '2024-05-15' }, // Only date present
-      {}, // Neither field present
+      { amount: 100, effectiveDate: '2024-05-15' },  // Both fields present
+      { amount: 100 },                               // Only amount present
+      { effectiveDate: '2024-05-15' },               // Only date present
+      {}                                             // Neither field present
     ];
 
-    validCases.forEach(async data => {
-      const result = await validateAgainstModel(data, optionalModel);
+    validCases.forEach(data => {
+      const result = validateAgainstModel(data, optionalModel);
       expect(isValidationError(result)).toBe(false);
     });
   });
@@ -1784,7 +1743,7 @@ describe('Date Dependency Validation with Epoch Conversion', () => {
     // Model with two date fields where endDate must be after startDate
     const dateRangeModel: PerfectValidator.ValidationModel = {
       startDate: {
-        type: 'DATE',
+        type: 'DATE'
       },
       endDate: {
         type: 'DATE',
@@ -1798,9 +1757,9 @@ describe('Date Dependency Validation with Epoch Conversion', () => {
             const endEpoch = new Date(endDate).getTime();
             return endEpoch > startEpoch;
           },
-          message: 'End date must be after start date',
-        },
-      },
+          message: 'End date must be after start date'
+        }
+      }
     };
 
     const storeModel = await pv.storeModel('dateRange', dateRangeModel);
@@ -1809,136 +1768,25 @@ describe('Date Dependency Validation with Epoch Conversion', () => {
     // Valid case - end date is after start date
     const validData = {
       startDate: '2023-01-01T10:00:00Z',
-      endDate: '2023-01-02T10:00:00Z', // 1 day later
+      endDate: '2023-01-02T10:00:00Z'  // 1 day later
     };
 
     // Invalid case - end date is before start date
     const invalidData = {
       startDate: '2023-01-15T10:00:00Z',
-      endDate: '2023-01-10T10:00:00Z', // 5 days earlier
+      endDate: '2023-01-10T10:00:00Z'  // 5 days earlier
     };
 
     // Test valid case
-    const validResult = await validateAgainstModel(validData, model);
+    const validResult = validateAgainstModel(validData, model);
     expect(isValidationError(validResult)).toBe(false);
 
     // Test invalid case
-    const invalidResult = await validateAgainstModel(invalidData, model);
+    const invalidResult = validateAgainstModel(invalidData, model);
     expect(isValidationError(invalidResult)).toBe(true);
     if (isValidationError(invalidResult)) {
       expect(invalidResult.errors[0].field).toBe('endDate');
-      expect(invalidResult.errors[0].message).toBe(
-        'End date must be after start date'
-      );
+      expect(invalidResult.errors[0].message).toBe('End date must be after start date');
     }
   });
-});
-
-describe('internal tests', () => {
-  let pv: PV;
-  let client: MongoClient;
-  let db: Db;
-
-  beforeAll(async () => {
-    client = await MongoClient.connect('mongodb://localhost:27017');
-    db = client.db('test_db');
-    const storage = new MongoStorage(db);
-    pv = new PV(storage);
-  });
-
-  afterAll(async () => {
-    await client.close();
-  });
-
-  it('should log minPlayers and isFatafat values during validation', async () => {
-    const model: PerfectValidator.ValidationModel = {
-      version: {
-        type: 'S',
-        values: ['T1', 'T2', 'T3', 'T4', 'T5', 'OLD', 'NEW'],
-      },
-      isFatafat: {
-        type: 'B',
-        optional: true,
-        dependsOn: {
-          field: 'minNumberOfPlayers',
-          condition: function(minPlayers: number) {
-            console.log('minPlayers in condition:', minPlayers);
-            return minPlayers === 3 || minPlayers === 4;
-          },
-          validate: function(isFatafat: boolean, minPlayers: number) {
-            console.log('isFatafat in validation:', isFatafat);
-            console.log('minPlayers in validation:', minPlayers);
-            return isFatafat === false;
-          },
-          message: 'Fatafat is not allowed for 3 or 4 players',
-        },
-      },
-      isQuickTournament: {
-        type: 'B',
-        optional: true,
-        default: false,
-        dependsOn: {
-          field: 'isFatafat',
-          condition: function(isFatafat: boolean) {
-            return isFatafat === true;
-          },
-          validate: function(isQuickTournament: boolean, isFatafat: boolean) {
-            return isQuickTournament === false;
-          },
-          message: 'Quick tournament/fatafat tournaments are not allowed',
-        },
-      },
-    };
-
-    const data = {
-      version: 'T1',
-      minNumberOfPlayers: 3,
-    };
-
-    // Run validation
-    const result = await validateAgainstModel(data, model);
-    console.log('result', result);
-  });
-
-  //   it('should call api with correct parameters', async () => {
-  //     const tradingModel: PerfectValidator.ValidationModel = {
-  //       pair: {
-  //         type: 'S',
-  //         values: ['XXBTZEUR']
-  //       },
-  //       orderType: {
-  //         type: 'S',
-  //         values: ['buy', 'sell']
-  //       },
-  //       price: {
-  //         type: 'N',
-  //         decimal: true,
-  //         dependsOn: {
-  //           field: 'orderType',
-  //           condition: function(orderType: string){
-  //             return true
-  //           },
-  //           validate: async function(price: number, orderType: string , data:any) {
-  //             const response =  await fetch(`https://catfact.ninja/fact`);
-  //             // console.log('response', response)
-  //             // console.log('data', data.pair)
-  //             return true
-  //           },
-  //           message: 'Price must be less than the last ask price',
-  //         },
-  //       },
-  //     };
-
-  //     const validData = {
-  //       pair: 'XXBTZEUR',
-  //       orderType: 'buy',
-  //       price: 7582
-  //     };
-
-  //    const storeModel = await pv.storeModel('trading', tradingModel , 1);
-  // const model = await pv.getModelVersion('trading', 1);
-
-  //     const validResult = await pv.validateDynamic(validData, 'trading', 1);
-
-  // })
 });

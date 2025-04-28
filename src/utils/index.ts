@@ -51,18 +51,7 @@ export const deserializeFunction = (
         );
       }
     }
-    const asyncFnMatch = normalizedStr.match(
-      /^\s*async\s+function\s*\((.*?)\)\s*\{([\s\S]*)\}\s*$/
-    );
-    if (asyncFnMatch) {
-      const [, params, body] = asyncFnMatch;
-      const AsyncFunction = Object.getPrototypeOf(async function() {})
-        .constructor;
-      return new AsyncFunction(
-        ...params.split(',').map(p => p.trim()),
-        body.trim()
-      );
-    }
+
     // Regular function (now without 'function' keyword)
     const regularFnMatch = normalizedStr.match(
       /^\s*\((.*?)\)\s*\{([\s\S]*)\}\s*$/
@@ -71,8 +60,6 @@ export const deserializeFunction = (
       const [, params, body] = regularFnMatch;
       return new Function(...params.split(',').map(p => p.trim()), body.trim());
     }
-
-    // For async functions, ensure 'async' keyword is preserved
 
     throw new Error('Invalid function format');
   } catch (error) {
