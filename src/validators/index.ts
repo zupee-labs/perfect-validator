@@ -61,22 +61,14 @@ function applyDefaults(data: any, model: PerfectValidator.ValidationModel): any 
     const result = { ...data };
 
     function getDefaultValue(rule: PerfectValidator.ValidationRule): any {
+        // Only apply defaults if explicitly specified
         if (rule.default !== undefined) {
             return typeof rule.default === 'function' 
                 ? rule.default() 
                 : JSON.parse(JSON.stringify(rule.default));
         }
-
-        if (rule.type) {
-            switch (rule.type) {
-                case 'S': return '';
-                case 'N': return 0;
-                case 'B': return false;
-                case 'L': return [];
-                case 'M': return {};
-                default: return undefined;
-            }
-        }
+        
+        // Don't apply type-based defaults automatically
         return undefined;
     }
 
