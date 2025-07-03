@@ -274,6 +274,8 @@ export function validateAgainstModel<T>(
     function validateValue(value: any, rule: PerfectValidator.ValidationRule | string, path: string): void {
         // Handle undefined for optional fields
         if (value === undefined) {
+            let isRequiredByDependency = false;
+            
             // Check if there's a dependency that might make this required
             if (typeof rule === 'object' && rule.dependsOn) {
                 const deps = Array.isArray(rule.dependsOn) ? rule.dependsOn : [rule.dependsOn];
@@ -287,25 +289,32 @@ export function validateAgainstModel<T>(
                     
                     if (dep.condition(depValue)) {
                         // Check if the dependency explicitly marks this as required
-                        // We'll need to add an 'isRequired' property to ValidationDependency
                         if (dep.isRequired) {
+                            isRequiredByDependency = true;
                             errors.push({
                                 field: path,
                                 message: dep.message || 'Field is required based on dependencies'
                             });
+
                             return;
                         }
                     }
                 }
             }
             
-            // If we get here and the field is optional, we can skip further validation
-            if (typeof rule === 'object' && rule.optional) return;
+            // Only skip validation if field is optional AND not required by dependencies
+            if (typeof rule === 'object' && rule.optional && !isRequiredByDependency) {
+
+                return;
+            }
             
+            // If we get here, the field is required
+            if (!isRequiredByDependency) {
             errors.push({
                 field: path,
                 message: 'Field is required'
             });
+            }
             return;
         }
 
@@ -404,6 +413,31 @@ export function validateAgainstModel<T>(
                 });
             }
         }
+
+        // Custom validation function (standalone validate property)
+        if (typeof rule === 'object' && rule.validate && typeof rule.validate === 'function') {
+
+            
+            try {
+                const isValid = rule.validate(value);
+
+                
+                if (!isValid) {
+                    errors.push({
+                        field: path,
+                        message: rule.message || `Custom validation failed for field ${path}`
+                    });
+                }
+            } catch (error) {
+
+                
+                errors.push({
+                    field: path,
+                    message: rule.message || `Custom validation error for field ${path}: ${error instanceof Error ? error.message : 'Unknown error'}`
+                });
+            }
+        }
+
         // Handle array validation
         if (rule.items && Array.isArray(value)) {
             value.forEach((item, index) => {
